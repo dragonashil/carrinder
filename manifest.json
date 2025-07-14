@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Career Manager",
+  "name": "Carrinder",
   "version": "1.0.0",
   "description": "Manage your professional career events from Google Calendar",
   "permissions": [
@@ -37,9 +37,15 @@
   "options_page": "options.html",
   "content_scripts": [
     {
-      "matches": ["https://calendar.google.com/*"],
-      "js": ["content.js"],
-      "css": ["content.css"]
+      "matches": [
+        "https://calendar.google.com/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "css": [
+        "content.css"
+      ]
     }
   ],
   "oauth2": {
@@ -52,8 +58,12 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["assets/*"],
-      "matches": ["<all_urls>"]
+      "resources": [
+        "assets/*"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
     }
   ]
 }

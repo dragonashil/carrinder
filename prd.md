@@ -1,4 +1,4 @@
-# Career Manager Chrome Extension PRD
+# Carrinder-Career Manager Chrome Extension PRD
 
 ## 1. Product Overview
 

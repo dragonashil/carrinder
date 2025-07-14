@@ -36,55 +36,141 @@
       </div>
 
       <div class="dashboard" id="dashboard" style="display: none;">
-        <div class="stats-section">
-          <div class="stat-item">
-            <div class="stat-number" id="total-events">0</div>
-            <div class="stat-label">Total Events</div>
+        <!-- Data Collection Configuration -->
+        <div class="collection-config">
+          <h2 class="section-title">데이터 수집 설정</h2>
+          
+          <!-- Period Selection -->
+          <div class="config-group">
+            <label class="config-label">수집 기간</label>
+            <div class="period-selection">
+              <select id="period-type" class="select-input">
+                <option value="year">연도별</option>
+                <option value="month">월별</option>
+                <option value="custom">커스텀 기간</option>
+              </select>
+              
+              <div id="year-selector" class="date-selector">
+                <select id="year-select" class="select-input">
+                  <option value="2024">2024년</option>
+                  <option value="2023">2023년</option>
+                  <option value="2022">2022년</option>
+                </select>
+              </div>
+              
+              <div id="month-selector" class="date-selector" style="display: none;">
+                <select id="month-select" class="select-input">
+                  <option value="2024-01">2024년 1월</option>
+                  <option value="2024-02">2024년 2월</option>
+                  <option value="2024-03">2024년 3월</option>
+                  <option value="2024-04">2024년 4월</option>
+                  <option value="2024-05">2024년 5월</option>
+                  <option value="2024-06">2024년 6월</option>
+                  <option value="2024-07">2024년 7월</option>
+                  <option value="2024-08">2024년 8월</option>
+                  <option value="2024-09">2024년 9월</option>
+                  <option value="2024-10">2024년 10월</option>
+                  <option value="2024-11">2024년 11월</option>
+                  <option value="2024-12">2024년 12월</option>
+                </select>
+              </div>
+              
+              <div id="custom-selector" class="date-selector custom-range" style="display: none;">
+                <input type="date" id="start-date" class="date-input" />
+                <span>~</span>
+                <input type="date" id="end-date" class="date-input" />
+              </div>
+            </div>
           </div>
-          <div class="stat-item">
-            <div class="stat-number" id="this-month">0</div>
-            <div class="stat-label">This Month</div>
+
+          <!-- Career Type Selection -->
+          <div class="config-group">
+            <label class="config-label">직업군 선택</label>
+            <div class="career-types">
+              <label class="checkbox-item">
+                <input type="checkbox" id="instructor-type" checked>
+                <span class="checkmark"></span>
+                강사 활동 (강의, 워크샵, 세미나)
+              </label>
+              <label class="checkbox-item">
+                <input type="checkbox" id="judge-type" checked>
+                <span class="checkmark"></span>
+                심사 활동 (평가, 심사, 검토)
+              </label>
+              <label class="checkbox-item">
+                <input type="checkbox" id="mentor-type" checked>
+                <span class="checkmark"></span>
+                멘토링 활동 (상담, 지도, 코칭)
+              </label>
+              <label class="checkbox-item">
+                <input type="checkbox" id="other-type">
+                <span class="checkmark"></span>
+                기타 커리어 활동
+              </label>
+            </div>
           </div>
-          <div class="stat-item">
-            <div class="stat-number" id="synced-events">0</div>
-            <div class="stat-label">Synced to Sheets</div>
+
+          <!-- Keyword Filter -->
+          <div class="config-group">
+            <label class="config-label">키워드 필터 (선택사항)</label>
+            <input type="text" id="keyword-filter" class="text-input" 
+                   placeholder="예: 개발, 디자인, 마케팅 (쉼표로 구분)">
+            <small class="help-text">특정 키워드가 포함된 이벤트만 수집합니다</small>
+          </div>
+
+          <!-- Drive Folder Selection -->
+          <div class="config-group">
+            <label class="config-label">저장 위치</label>
+            <div class="folder-selection">
+              <button class="btn btn-outline" id="select-folder-btn">📁 구글 드라이브 폴더 선택</button>
+              <div class="selected-folder" id="selected-folder">
+                <span class="folder-path">루트 폴더</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Collection Button -->
+          <div class="collection-actions">
+            <button class="btn btn-primary btn-large" id="collect-data-btn">
+              📊 데이터 수집 및 시트 생성
+            </button>
           </div>
         </div>
 
-        <div class="events-section">
-          <h2 class="section-title">Recent Activities</h2>
-          <div class="events-list" id="events-list">
-            <div class="empty-state" id="empty-state">
-              <p>No career events found.<br>Connect your Google Calendar to start tracking professional activities.</p>
-            </div>
+        <!-- Main Dashboard Actions -->
+        <div class="main-actions">
+          <div class="actions-row">
+            <button class="btn btn-secondary" id="sync-btn">🔄 캘린더 동기화</button>
+            <button class="btn btn-outline" id="settings-btn">⚙️ 설정</button>
           </div>
         </div>
 
-        <div class="spreadsheets-section">
-          <h2 class="section-title">Spreadsheets</h2>
-          <div class="spreadsheet-status" id="spreadsheet-status">
-            <div class="spreadsheet-item" id="instructor-sheet">
-              <span class="sheet-name">Instructor Activities</span>
-              <span class="sheet-status">Not created</span>
-              <button class="btn btn-small" onclick="openSpreadsheet('instructor')">Open</button>
-            </div>
-            <div class="spreadsheet-item" id="judge-sheet">
-              <span class="sheet-name">Judge Activities</span>
-              <span class="sheet-status">Not created</span>
-              <button class="btn btn-small" onclick="openSpreadsheet('judge')">Open</button>
-            </div>
-            <div class="spreadsheet-item" id="mentor-sheet">
-              <span class="sheet-name">Mentor Activities</span>
-              <span class="sheet-status">Not created</span>
-              <button class="btn btn-small" onclick="openSpreadsheet('mentor')">Open</button>
-            </div>
+        <!-- Collection Progress -->
+        <div class="collection-progress" id="collection-progress" style="display: none;">
+          <h3>데이터 수집 중...</h3>
+          <div class="progress-bar">
+            <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
           </div>
+          <div class="progress-status" id="progress-status">캘린더 데이터 가져오는 중...</div>
         </div>
 
-        <div class="actions-section">
-          <button class="btn btn-secondary" id="sync-btn">Sync Calendar</button>
-          <button class="btn btn-primary" id="sync-sheets-btn">Sync to Sheets</button>
-          <button class="btn btn-outline" id="settings-btn">Settings</button>
+        <!-- Results Summary -->
+        <div class="collection-results" id="collection-results" style="display: none;">
+          <h3>수집 완료!</h3>
+          <div class="results-stats">
+            <div class="result-item">
+              <span class="result-number" id="collected-count">0</span>
+              <span class="result-label">개 이벤트 수집</span>
+            </div>
+            <div class="result-item">
+              <span class="result-number" id="sheets-created">0</span>
+              <span class="result-label">개 시트 생성</span>
+            </div>
+          </div>
+          <div class="created-sheets" id="created-sheets">
+            <!-- Generated sheet links will be added here -->
+          </div>
+          <button class="btn btn-outline" id="new-collection-btn">새로운 수집 시작</button>
         </div>
       </div>
     </main>

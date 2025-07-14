@@ -1,5 +1,5 @@
 {
-  "name": "career-manager",
+  "name": "carrinder",
   "version": "1.0.0",
   "description": "Chrome extension for managing professional career events",
   "main": "src/background/background.js",

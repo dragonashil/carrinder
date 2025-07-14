@@ -24,6 +24,15 @@ class CareerManagerBackground {
         case 'get_calendar_events':
           this.getCalendarEvents(request.timeRange, sendResponse);
           break;
+        case 'getCalendarEvents':
+          this.getCalendarEventsWithParams(request.params, sendResponse);
+          break;
+        case 'createSpreadsheet':
+          this.createSpreadsheet(request.params, sendResponse);
+          break;
+        case 'populateSpreadsheet':
+          this.populateSpreadsheet(request.params, sendResponse);
+          break;
         case 'sync_to_spreadsheets':
           this.syncToSpreadsheets(sendResponse);
           break;
@@ -715,6 +724,259 @@ class CareerManagerBackground {
     
     return new Promise((resolve) => {
       chrome.storage.local.set({ settings: updatedSettings }, resolve);
+    });
+  }
+
+  // === 새로운 데이터 수집 메소드들 ===
+
+  async getCalendarEventsWithParams(params, sendResponse) {
+    try {
+      // Get stored auth token
+      const authData = await this.getStoredData('google_auth');
+      if (!authData || !authData.access_token) {
+        throw new Error('Google 인증이 필요합니다.');
+      }
+
+      // Prepare Calendar API request
+      const calendarId = 'primary';
+      const url = `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events?` +
+        new URLSearchParams({
+          timeMin: params.timeMin,
+          timeMax: params.timeMax,
+          singleEvents: 'true',
+          orderBy: 'startTime',
+          maxResults: 2500 // Maximum allowed by API
+        });
+
+      console.log('Fetching calendar events:', url);
+
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${authData.access_token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Calendar API error: ${errorData.error?.message || response.statusText}`);
+      }
+
+      const data = await response.json();
+      console.log(`Found ${data.items?.length || 0} calendar events`);
+
+      sendResponse({
+        success: true,
+        events: data.items || []
+      });
+
+    } catch (error) {
+      console.error('Calendar events fetch error:', error);
+      sendResponse({
+        success: false,
+        error: error.message
+      });
+    }
+  }
+
+  async createSpreadsheet(params, sendResponse) {
+    try {
+      // Get stored auth token
+      const authData = await this.getStoredData('google_auth');
+      if (!authData || !authData.access_token) {
+        throw new Error('Google 인증이 필요합니다.');
+      }
+
+      // Create spreadsheet using Google Sheets API
+      const createUrl = 'https://sheets.googleapis.com/v4/spreadsheets';
+      
+      const spreadsheetData = {
+        properties: {
+          title: params.title
+        },
+        sheets: [{
+          properties: {
+            title: this.getSheetNameForRole(params.role),
+            gridProperties: {
+              rowCount: 1000,
+              columnCount: 20
+            }
+          }
+        }]
+      };
+
+      console.log('Creating spreadsheet:', params.title);
+
+      const createResponse = await fetch(createUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${authData.access_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(spreadsheetData)
+      });
+
+      if (!createResponse.ok) {
+        const errorData = await createResponse.json();
+        throw new Error(`Spreadsheet creation error: ${errorData.error?.message || createResponse.statusText}`);
+      }
+
+      const spreadsheet = await createResponse.json();
+      
+      // Add headers to the sheet
+      await this.addHeadersToSheet(spreadsheet.spreadsheetId, params.role, authData.access_token);
+
+      console.log('Spreadsheet created:', spreadsheet.spreadsheetUrl);
+
+      sendResponse({
+        success: true,
+        spreadsheetId: spreadsheet.spreadsheetId,
+        webViewLink: spreadsheet.spreadsheetUrl,
+        title: params.title
+      });
+
+    } catch (error) {
+      console.error('Spreadsheet creation error:', error);
+      sendResponse({
+        success: false,
+        error: error.message
+      });
+    }
+  }
+
+  getSheetNameForRole(role) {
+    const names = {
+      instructor: '강사활동',
+      judge: '심사활동',
+      mentor: '멘토링활동',
+      other: '기타활동'
+    };
+    return names[role] || '데이터';
+  }
+
+  async addHeadersToSheet(spreadsheetId, role, accessToken) {
+    // Define column headers based on role
+    const headers = [
+      '제목',
+      '날짜', 
+      '시작시간',
+      '종료시간',
+      '위치',
+      '설명',
+      '유형',
+      '역할',
+      '세부카테고리',
+      '생성일'
+    ];
+
+    const updateUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/A1:J1?valueInputOption=RAW`;
+
+    const response = await fetch(updateUrl, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        values: [headers]
+      })
+    });
+
+    if (!response.ok) {
+      console.warn('Failed to add headers:', response.statusText);
+    }
+  }
+
+  async populateSpreadsheet(params, sendResponse) {
+    try {
+      // Get stored auth token
+      const authData = await this.getStoredData('google_auth');
+      if (!authData || !authData.access_token) {
+        throw new Error('Google 인증이 필요합니다.');
+      }
+
+      const { spreadsheetId, events, role } = params;
+
+      // Convert events to spreadsheet rows
+      const rows = events.map(event => this.eventToSpreadsheetRow(event));
+
+      if (rows.length === 0) {
+        sendResponse({ success: true, rowsAdded: 0 });
+        return;
+      }
+
+      // Add data to spreadsheet
+      const range = `A2:J${rows.length + 1}`;
+      const updateUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?valueInputOption=RAW`;
+
+      console.log(`Adding ${rows.length} rows to spreadsheet ${spreadsheetId}`);
+
+      const response = await fetch(updateUrl, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${authData.access_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          values: rows
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Spreadsheet update error: ${errorData.error?.message || response.statusText}`);
+      }
+
+      console.log(`Successfully added ${rows.length} rows to spreadsheet`);
+
+      sendResponse({
+        success: true,
+        rowsAdded: rows.length
+      });
+
+    } catch (error) {
+      console.error('Spreadsheet population error:', error);
+      sendResponse({
+        success: false,
+        error: error.message
+      });
+    }
+  }
+
+  eventToSpreadsheetRow(event) {
+    // Convert event to spreadsheet row
+    const startTime = event.start?.dateTime || event.start?.date || '';
+    const endTime = event.end?.dateTime || event.end?.date || '';
+    
+    const formatDateTime = (dateTimeStr) => {
+      if (!dateTimeStr) return '';
+      try {
+        const date = new Date(dateTimeStr);
+        return date.toLocaleString('ko-KR');
+      } catch {
+        return dateTimeStr;
+      }
+    };
+
+    return [
+      event.summary || '',                           // 제목
+      startTime.split('T')[0] || '',                // 날짜 (YYYY-MM-DD)
+      formatDateTime(startTime),                     // 시작시간
+      formatDateTime(endTime),                       // 종료시간
+      event.location || '',                          // 위치
+      event.description || '',                       // 설명
+      event.type || '',                             // 유형
+      event.role || '',                             // 역할
+      event.subcategory || '',                      // 세부카테고리
+      new Date().toLocaleString('ko-KR')            // 생성일
+    ];
+  }
+
+  async getStoredData(key) {
+    return new Promise((resolve) => {
+      chrome.storage.local.get([key], (result) => {
+        resolve(result[key]);
+      });
     });
   }
 }
