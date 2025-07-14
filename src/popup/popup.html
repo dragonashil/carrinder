@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Career Manager</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <h1 class="title">Career Manager</h1>
+      <div class="sync-status" id="sync-status">
+        <span class="status-indicator" id="status-indicator"></span>
+        <span class="status-text" id="status-text">Not synced</span>
+      </div>
+    </header>
+
+    <main class="main">
+      <div class="auth-section" id="auth-section">
+        <div class="auth-item">
+          <div class="auth-info">
+            <span class="auth-label">Google Calendar</span>
+            <span class="auth-status" id="google-auth-status">Not connected</span>
+          </div>
+          <button class="btn btn-primary" id="google-auth-btn">Connect</button>
+        </div>
+        
+        <div class="auth-item">
+          <div class="auth-info">
+            <span class="auth-label">Google Drive</span>
+            <span class="auth-status" id="drive-auth-status">Not connected</span>
+          </div>
+          <button class="btn btn-primary" id="drive-auth-btn">Connect</button>
+        </div>
+      </div>
+
+      <div class="dashboard" id="dashboard" style="display: none;">
+        <div class="stats-section">
+          <div class="stat-item">
+            <div class="stat-number" id="total-events">0</div>
+            <div class="stat-label">Total Events</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-number" id="this-month">0</div>
+            <div class="stat-label">This Month</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-number" id="synced-events">0</div>
+            <div class="stat-label">Synced to Sheets</div>
+          </div>
+        </div>
+
+        <div class="events-section">
+          <h2 class="section-title">Recent Activities</h2>
+          <div class="events-list" id="events-list">
+            <div class="empty-state" id="empty-state">
+              <p>No career events found.<br>Connect your Google Calendar to start tracking professional activities.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="spreadsheets-section">
+          <h2 class="section-title">Spreadsheets</h2>
+          <div class="spreadsheet-status" id="spreadsheet-status">
+            <div class="spreadsheet-item" id="instructor-sheet">
+              <span class="sheet-name">Instructor Activities</span>
+              <span class="sheet-status">Not created</span>
+              <button class="btn btn-small" onclick="openSpreadsheet('instructor')">Open</button>
+            </div>
+            <div class="spreadsheet-item" id="judge-sheet">
+              <span class="sheet-name">Judge Activities</span>
+              <span class="sheet-status">Not created</span>
+              <button class="btn btn-small" onclick="openSpreadsheet('judge')">Open</button>
+            </div>
+            <div class="spreadsheet-item" id="mentor-sheet">
+              <span class="sheet-name">Mentor Activities</span>
+              <span class="sheet-status">Not created</span>
+              <button class="btn btn-small" onclick="openSpreadsheet('mentor')">Open</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="actions-section">
+          <button class="btn btn-secondary" id="sync-btn">Sync Calendar</button>
+          <button class="btn btn-primary" id="sync-sheets-btn">Sync to Sheets</button>
+          <button class="btn btn-outline" id="settings-btn">Settings</button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

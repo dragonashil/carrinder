@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Career Manager Icon Generator</title>
+    <style>
+        body {
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+            padding: 40px;
+            background: #f5f5f5;
+            margin: 0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 32px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #1a1a1a;
+            margin-bottom: 40px;
+        }
+        .icon-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        .icon-item {
+            text-align: center;
+            padding: 20px;
+            border: 1px solid #e5e5e5;
+            border-radius: 8px;
+            background: #fafafa;
+        }
+        .icon-item h3 {
+            margin: 15px 0 10px 0;
+            color: #333;
+        }
+        .icon-size {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+        canvas {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+        .download-btn {
+            background: #000;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 13px;
+            transition: all 0.2s ease;
+        }
+        .download-btn:hover {
+            background: #333;
+            transform: translateY(-1px);
+        }
+        .preview-section {
+            margin-top: 40px;
+            padding-top: 40px;
+            border-top: 1px solid #e5e5e5;
+        }
+        .preview-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .preview-item {
+            text-align: center;
+            padding: 15px;
+            border: 1px solid #e5e5e5;
+            border-radius: 6px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Career Manager Icon Generator</h1>
+        <p style="text-align: center; color: #666; margin-bottom: 40px;">
+            Generate high-quality PNG icons for the Chrome extension in multiple sizes
+        </p>
+        
+        <div class="icon-grid">
+            <div class="icon-item">
+                <h3>Small Icon</h3>
+                <div class="icon-size">16×16 pixels</div>
+                <canvas id="icon-16" width="16" height="16"></canvas>
+                <br>
+                <button class="download-btn" onclick="downloadIcon('icon-16', 'career-manager-16x16.png')">
+                    Download 16×16
+                </button>
+            </div>
+            
+            <div class="icon-item">
+                <h3>Medium Icon</h3>
+                <div class="icon-size">48×48 pixels</div>
+                <canvas id="icon-48" width="48" height="48"></canvas>
+                <br>
+                <button class="download-btn" onclick="downloadIcon('icon-48', 'career-manager-48x48.png')">
+                    Download 48×48
+                </button>
+            </div>
+            
+            <div class="icon-item">
+                <h3>Large Icon</h3>
+                <div class="icon-size">128×128 pixels</div>
+                <canvas id="icon-128" width="128" height="128"></canvas>
+                <br>
+                <button class="download-btn" onclick="downloadIcon('icon-128', 'career-manager-128x128.png')">
+                    Download 128×128
+                </button>
+            </div>
+        </div>
+
+        <div class="preview-section">
+            <h2>Icon Previews</h2>
+            <div class="preview-grid">
+                <div class="preview-item">
+                    <div style="background: #000; padding: 10px; border-radius: 4px; margin-bottom: 10px;">
+                        <canvas id="preview-16-dark" width="16" height="16"></canvas>
+                    </div>
+                    <div>16×16 on dark</div>
+                </div>
+                <div class="preview-item">
+                    <div style="background: #fff; padding: 10px; border-radius: 4px; margin-bottom: 10px; border: 1px solid #ddd;">
+                        <canvas id="preview-16-light" width="16" height="16"></canvas>
+                    </div>
+                    <div>16×16 on light</div>
+                </div>
+                <div class="preview-item">
+                    <div style="background: #f0f0f0; padding: 10px; border-radius: 4px; margin-bottom: 10px;">
+                        <canvas id="preview-48-gray" width="48" height="48"></canvas>
+                    </div>
+                    <div>48×48 on gray</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Modern career manager icon with calendar and professional elements
+        function drawIcon(canvas, size) {
+            const ctx = canvas.getContext('2d');
+            const scale = size / 128;
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, size, size);
+            
+            // Background - modern black with subtle gradient
+            const gradient = ctx.createLinearGradient(0, 0, size, size);
+            gradient.addColorStop(0, '#1a1a1a');
+            gradient.addColorStop(1, '#000000');
+            
+            ctx.fillStyle = gradient;
+            ctx.roundRect(0, 0, size, size, size * 0.15);
+            ctx.fill();
+            
+            // Scale all drawing operations
+            ctx.scale(scale, scale);
+            
+            // Calendar base - clean white background
+            ctx.fillStyle = '#ffffff';
+            ctx.roundRect(24, 35, 80, 70, 6);
+            ctx.fill();
+            
+            // Calendar header (dark bar)
+            ctx.fillStyle = '#2a2a2a';
+            ctx.roundRect(24, 35, 80, 16, 6);
+            ctx.fill();
+            ctx.fillRect(24, 43, 80, 8);
+            
+            // Calendar binding rings
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(40, 43, 3, 0, 2 * Math.PI);
+            ctx.arc(64, 43, 3, 0, 2 * Math.PI);
+            ctx.arc(88, 43, 3, 0, 2 * Math.PI);
+            ctx.fill();
+            
+            // Calendar grid - subtle lines
+            ctx.strokeStyle = '#f0f0f0';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            // Vertical lines
+            for (let i = 1; i < 4; i++) {
+                const x = 24 + (80 * i / 4);
+                ctx.moveTo(x, 55);
+                ctx.lineTo(x, 100);
+            }
+            // Horizontal lines
+            for (let i = 1; i < 3; i++) {
+                const y = 55 + (45 * i / 3);
+                ctx.moveTo(28, y);
+                ctx.lineTo(100, y);
+            }
+            ctx.stroke();
+            
+            // Professional activity indicators (small colored dots)
+            const activities = [
+                { x: 35, y: 65, color: '#4a90e2' }, // Lecture
+                { x: 55, y: 65, color: '#7ed321' }, // Mentoring
+                { x: 75, y: 65, color: '#f5a623' }, // Evaluation
+                { x: 35, y: 80, color: '#4a90e2' },
+                { x: 95, y: 80, color: '#7ed321' },
+                { x: 55, y: 95, color: '#f5a623' },
+            ];
+            
+            activities.forEach(activity => {
+                ctx.fillStyle = activity.color;
+                ctx.beginPath();
+                ctx.arc(activity.x, activity.y, 2.5, 0, 2 * Math.PI);
+                ctx.fill();
+            });
+            
+            // Career progress indicator (subtle bar at bottom)
+            ctx.fillStyle = '#00d4aa';
+            ctx.roundRect(28, 108, 72, 3, 1.5);
+            ctx.fill();
+            
+            // Reset scale
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+        }
+        
+        // Generate all icon sizes
+        function generateIcons() {
+            const sizes = [
+                { id: 'icon-16', size: 16 },
+                { id: 'icon-48', size: 48 },
+                { id: 'icon-128', size: 128 },
+                { id: 'preview-16-dark', size: 16 },
+                { id: 'preview-16-light', size: 16 },
+                { id: 'preview-48-gray', size: 48 }
+            ];
+            
+            sizes.forEach(({ id, size }) => {
+                const canvas = document.getElementById(id);
+                if (canvas) {
+                    // Set actual canvas size for high DPI displays
+                    const dpr = window.devicePixelRatio || 1;
+                    canvas.width = size * dpr;
+                    canvas.height = size * dpr;
+                    canvas.style.width = size + 'px';
+                    canvas.style.height = size + 'px';
+                    
+                    const ctx = canvas.getContext('2d');
+                    ctx.scale(dpr, dpr);
+                    
+                    drawIcon(canvas, size);
+                }
+            });
+        }
+        
+        // Download function
+        function downloadIcon(canvasId, filename) {
+            const canvas = document.getElementById(canvasId);
+            const link = document.createElement('a');
+            link.download = filename;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+        
+        // Add roundRect method if not available
+        if (!CanvasRenderingContext2D.prototype.roundRect) {
+            CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+                if (w < 2 * r) r = w / 2;
+                if (h < 2 * r) r = h / 2;
+                this.beginPath();
+                this.moveTo(x + r, y);
+                this.arcTo(x + w, y, x + w, y + h, r);
+                this.arcTo(x + w, y + h, x, y + h, r);
+                this.arcTo(x, y + h, x, y, r);
+                this.arcTo(x, y, x + w, y, r);
+                this.closePath();
+                return this;
+            };
+        }
+        
+        // Generate icons when page loads
+        window.addEventListener('load', generateIcons);
+    </script>
+</body>
+</html>

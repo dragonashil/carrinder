@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Career Manager - Settings</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <h1 class="title">Career Manager Settings</h1>
+      <p class="subtitle">Configure your career event management preferences</p>
+    </header>
+
+    <main class="main">
+      <div class="settings-section">
+        <h2 class="section-title">Authentication</h2>
+        <div class="setting-group">
+          <div class="setting-item">
+            <div class="setting-info">
+              <label class="setting-label">Google Calendar</label>
+              <p class="setting-description">Connect your Google Calendar to sync career events</p>
+            </div>
+            <div class="setting-control">
+              <span class="auth-status" id="google-status">Not connected</span>
+              <button class="btn btn-primary" id="google-connect-btn">Connect</button>
+            </div>
+          </div>
+
+          <div class="setting-item">
+            <div class="setting-info">
+              <label class="setting-label">Google Drive</label>
+              <p class="setting-description">Connect Google Drive to create and update spreadsheets</p>
+            </div>
+            <div class="setting-control">
+              <span class="auth-status" id="drive-status">Not connected</span>
+              <button class="btn btn-primary" id="drive-connect-btn">Connect</button>
+            </div>
+          </div>
+
+          <div class="setting-item">
+            <div class="setting-info">
+              <label class="setting-label">Notion Integration</label>
+              <p class="setting-description">Enter your Notion integration token to sync with databases</p>
+            </div>
+            <div class="setting-control">
+              <input type="password" class="input" id="notion-token" placeholder="Enter Notion token">
+              <button class="btn btn-secondary" id="notion-save-btn">Save</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h2 class="section-title">Event Detection</h2>
+        <div class="setting-group">
+          <div class="setting-item">
+            <div class="setting-info">
+              <label class="setting-label">Lecture Keywords</label>
+              <p class="setting-description">Keywords to identify lecture events</p>
+            </div>
+            <div class="setting-control">
+              <textarea class="textarea" id="lecture-keywords" rows="3" placeholder="강의, 특강, 수업, lecture, seminar"></textarea>
+            </div>
+          </div>
+
+          <div class="setting-item">
+            <div class="setting-info">
+              <label class="setting-label">Evaluation Keywords</label>
+              <p class="setting-description">Keywords to identify evaluation events</p>
+            </div>
+            <div class="setting-control">
+              <textarea class="textarea" id="evaluation-keywords" rows="3" placeholder="심사, 평가, 검토, evaluation, review"></textarea>
+            </div>
+          </div>
+
+          <div class="setting-item">
+            <div class="setting-info">
+              <label class="setting-label">Mentoring Keywords</label>
+              <p class="setting-description">Keywords to identify mentoring events</p>
+            </div>
+            <div class="setting-control">
+              <textarea class="textarea" id="mentoring-keywords" rows="3" placeholder="멘토링, 코칭, 상담, mentoring, coaching"></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h2 class="section-title">Sync Settings</h2>
+        <div class="setting-group">
+          <div class="setting-item">
+            <div class="setting-info">
+              <label class="setting-label">Auto Sync</label>
+              <p class="setting-description">Automatically sync events in the background</p>
+            </div>
+            <div class="setting-control">
+              <label class="switch">
+                <input type="checkbox" id="auto-sync" checked>
+                <span class="slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="setting-item">
+            <div class="setting-info">
+              <label class="setting-label">Sync Interval</label>
+              <p class="setting-description">How often to sync events (minutes)</p>
+            </div>
+            <div class="setting-control">
+              <select class="select" id="sync-interval">
+                <option value="15">15 minutes</option>
+                <option value="30" selected>30 minutes</option>
+                <option value="60">1 hour</option>
+                <option value="120">2 hours</option>
+                <option value="360">6 hours</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h2 class="section-title">Export Settings</h2>
+        <div class="setting-group">
+          <div class="setting-item">
+            <div class="setting-info">
+              <label class="setting-label">Default Export Format</label>
+              <p class="setting-description">Preferred format for exporting career events</p>
+            </div>
+            <div class="setting-control">
+              <select class="select" id="export-format">
+                <option value="spreadsheet" selected>Google Sheets</option>
+                <option value="notion">Notion Database</option>
+                <option value="csv">CSV File</option>
+                <option value="json">JSON File</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="setting-item">
+            <div class="setting-info">
+              <label class="setting-label">Include Description</label>
+              <p class="setting-description">Include event descriptions in exports</p>
+            </div>
+            <div class="setting-control">
+              <label class="switch">
+                <input type="checkbox" id="include-description" checked>
+                <span class="slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="setting-item">
+            <div class="setting-info">
+              <label class="setting-label">Include Location</label>
+              <p class="setting-description">Include event locations in exports</p>
+            </div>
+            <div class="setting-control">
+              <label class="switch">
+                <input type="checkbox" id="include-location" checked>
+                <span class="slider"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h2 class="section-title">Notifications</h2>
+        <div class="setting-group">
+          <div class="setting-item">
+            <div class="setting-info">
+              <label class="setting-label">Enable Notifications</label>
+              <p class="setting-description">Show notifications for important events</p>
+            </div>
+            <div class="setting-control">
+              <label class="switch">
+                <input type="checkbox" id="notifications-enabled" checked>
+                <span class="slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="setting-item">
+            <div class="setting-info">
+              <label class="setting-label">Upcoming Events</label>
+              <p class="setting-description">Notify about upcoming career events</p>
+            </div>
+            <div class="setting-control">
+              <label class="switch">
+                <input type="checkbox" id="upcoming-events" checked>
+                <span class="slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="setting-item">
+            <div class="setting-info">
+              <label class="setting-label">Sync Complete</label>
+              <p class="setting-description">Notify when sync is completed</p>
+            </div>
+            <div class="setting-control">
+              <label class="switch">
+                <input type="checkbox" id="sync-complete">
+                <span class="slider"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h2 class="section-title">Data Management</h2>
+        <div class="setting-group">
+          <div class="setting-item">
+            <div class="setting-info">
+              <label class="setting-label">Export Data</label>
+              <p class="setting-description">Export all your career event data</p>
+            </div>
+            <div class="setting-control">
+              <button class="btn btn-outline" id="export-data-btn">Export JSON</button>
+            </div>
+          </div>
+
+          <div class="setting-item">
+            <div class="setting-info">
+              <label class="setting-label">Import Data</label>
+              <p class="setting-description">Import career event data from backup</p>
+            </div>
+            <div class="setting-control">
+              <input type="file" class="file-input" id="import-file" accept=".json">
+              <button class="btn btn-outline" id="import-data-btn">Import JSON</button>
+            </div>
+          </div>
+
+          <div class="setting-item">
+            <div class="setting-info">
+              <label class="setting-label">Clear Data</label>
+              <p class="setting-description">Remove all stored career event data</p>
+            </div>
+            <div class="setting-control">
+              <button class="btn btn-danger" id="clear-data-btn">Clear All Data</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-primary" id="save-settings-btn">Save Settings</button>
+        <button class="btn btn-secondary" id="reset-settings-btn">Reset to Default</button>
+      </div>
+    </main>
+
+    <footer class="footer">
+      <p>&copy; 2024 Career Manager. All rights reserved.</p>
+    </footer>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="options.js"></script>
+</body>
+</html>

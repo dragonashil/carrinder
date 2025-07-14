@@ -1,0 +1,315 @@
+/* Content script styles for Google Calendar integration */
+
+/* Career Manager sync button */
+#career-manager-sync-btn {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 10000;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 50px;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+#career-manager-sync-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.career-manager-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  color: white;
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 50px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  transition: background 0.2s ease;
+}
+
+.career-manager-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.career-manager-btn:active {
+  transform: scale(0.98);
+}
+
+.career-manager-btn svg {
+  flex-shrink: 0;
+  animation: none;
+}
+
+.career-manager-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Syncing animation */
+.career-manager-btn.syncing svg {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Notification styles */
+.career-manager-notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 12px 20px;
+  border-radius: 8px;
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+  z-index: 10001;
+  transform: translateX(100%);
+  transition: transform 0.3s ease;
+  max-width: 300px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  line-height: 1.4;
+}
+
+.career-manager-notification.success {
+  background: #28a745;
+}
+
+.career-manager-notification.error {
+  background: #dc3545;
+}
+
+.career-manager-notification.info {
+  background: #17a2b8;
+}
+
+.career-manager-notification.warning {
+  background: #ffc107;
+  color: #212529;
+}
+
+.career-manager-notification.show {
+  transform: translateX(0);
+}
+
+/* Event highlighting */
+.career-manager-highlight {
+  outline: 2px solid #667eea !important;
+  outline-offset: 1px;
+  border-radius: 4px;
+}
+
+.career-manager-highlight::after {
+  content: "📚";
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: #667eea;
+  color: white;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+}
+
+/* Career event indicators */
+.career-manager-indicator {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  z-index: 10;
+}
+
+.career-manager-indicator.lecture {
+  background: #007bff;
+}
+
+.career-manager-indicator.evaluation {
+  background: #fd7e14;
+}
+
+.career-manager-indicator.mentoring {
+  background: #28a745;
+}
+
+.career-manager-indicator.other {
+  background: #6c757d;
+}
+
+/* Tooltip styles */
+.career-manager-tooltip {
+  position: absolute;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  z-index: 10002;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(-5px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.career-manager-tooltip.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.career-manager-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 4px solid transparent;
+  border-top-color: rgba(0, 0, 0, 0.8);
+}
+
+/* Loading overlay */
+.career-manager-loading {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10003;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.career-manager-loading.show {
+  opacity: 1;
+  visibility: visible;
+}
+
+.career-manager-loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #667eea;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+/* Progress bar */
+.career-manager-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: rgba(102, 126, 234, 0.2);
+  z-index: 10004;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.career-manager-progress.show {
+  opacity: 1;
+  visibility: visible;
+}
+
+.career-manager-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #667eea, #764ba2);
+  width: 0%;
+  transition: width 0.3s ease;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  #career-manager-sync-btn {
+    bottom: 10px;
+    right: 10px;
+  }
+  
+  .career-manager-btn {
+    padding: 10px 16px;
+    font-size: 13px;
+  }
+  
+  .career-manager-notification {
+    top: 10px;
+    right: 10px;
+    left: 10px;
+    max-width: none;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .career-manager-notification {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+  
+  .career-manager-loading {
+    background: rgba(33, 37, 41, 0.9);
+  }
+  
+  .career-manager-tooltip {
+    background: rgba(255, 255, 255, 0.9);
+    color: #333;
+  }
+  
+  .career-manager-tooltip::after {
+    border-top-color: rgba(255, 255, 255, 0.9);
+  }
+}
+
+/* Accessibility improvements */
+.career-manager-btn:focus,
+#career-manager-sync-btn:focus {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .career-manager-highlight {
+    outline-width: 3px;
+  }
+  
+  .career-manager-notification {
+    border: 2px solid currentColor;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .career-manager-btn,
+  .career-manager-notification,
+  .career-manager-tooltip,
+  #career-manager-sync-btn {
+    transition: none;
+  }
+  
+  .career-manager-btn svg,
+  .career-manager-loading-spinner {
+    animation: none;
+  }
+}

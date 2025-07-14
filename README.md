@@ -91,7 +91,10 @@ cd carrinder
 # Install dependencies
 npm install
 
-# Set up environment variables
+# Set up environment variables (interactive setup)
+npm run setup
+
+# Or manually copy and edit .env file
 cp .env.example .env
 # Edit .env with your API credentials
 
@@ -101,8 +104,8 @@ npm run build:dev
 # Run tests
 npm test
 
-# Start development server
-npm run dev
+# Watch for changes during development
+npm run watch
 ```
 
 ### Project Structure
@@ -205,7 +208,10 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Support
 
 ### Documentation
+- [🚀 Quick Start](docs/quick-start.md) - **5분 내에 시작하기**
+- [Getting API Keys](docs/getting-keys.md) - **시작하기 전에 필수!**
 - [Development Setup](docs/development-setup.md)
+- [Environment Setup](docs/environment-setup.md)
 - [API Reference](docs/api-reference.md)
 - [Testing Guide](docs/testing-guide.md)
 - [Deployment Guide](docs/deployment-guide.md)
