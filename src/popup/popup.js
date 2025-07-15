@@ -7,10 +7,27 @@ class CareerManagerPopup {
   }
 
   async init() {
+    this.driveSettings = {
+      selectedFolderId: 'root',
+      selectedFolderName: '루트 폴더',
+      filenameTemplate: '{role}_{period}',
+      customFilename: ''
+    };
+    this.currentFolderId = 'root';
+    this.selectedFolderId = 'root';
+    this.folderHistory = [];
+    
+    this.spreadsheetSettings = {
+      type: 'new', // 'new' or 'existing'
+      selectedSpreadsheetId: null,
+      selectedSpreadsheetName: null
+    };
+    
     this.setupEventListeners();
     await this.checkAuthStatus();
     await this.loadEvents();
     await this.loadSpreadsheetSummary();
+    await this.loadDriveSettings();
     this.updateUI();
   }
 
@@ -45,6 +62,13 @@ class CareerManagerPopup {
     const settingsBtn = document.getElementById('settings-btn');
     if (settingsBtn) {
       settingsBtn.addEventListener('click', () => {
+        this.openSettings();
+      });
+    }
+
+    const reconnectBtn = document.getElementById('reconnect-btn');
+    if (reconnectBtn) {
+      reconnectBtn.addEventListener('click', () => {
         this.openSettings();
       });
     }
@@ -88,6 +112,92 @@ class CareerManagerPopup {
     if (modalContinueBtn) {
       modalContinueBtn.addEventListener('click', () => {
         this.closeSuccessModal();
+      });
+    }
+
+    // Filename configuration listeners
+    this.setupFilenameListeners();
+    
+    // Folder modal listeners
+    this.setupFolderModalListeners();
+    
+    // Spreadsheet selection listeners
+    this.setupSpreadsheetListeners();
+  }
+
+  setupFilenameListeners() {
+    // Radio button change
+    const filenameRadios = document.querySelectorAll('input[name="filename-type"]');
+    filenameRadios.forEach(radio => {
+      radio.addEventListener('change', (e) => {
+        this.handleFilenameTypeChange(e.target.value);
+      });
+    });
+
+    // Template selection change
+    const templateSelect = document.getElementById('filename-template');
+    if (templateSelect) {
+      templateSelect.addEventListener('change', () => {
+        this.updateFilenamePreview();
+      });
+    }
+
+    // Custom filename input
+    const customInput = document.getElementById('custom-filename');
+    if (customInput) {
+      customInput.addEventListener('input', () => {
+        this.updateFilenamePreview();
+      });
+    }
+
+    // Initial setup
+    this.updateFilenamePreview();
+  }
+
+  setupFolderModalListeners() {
+    // Folder modal buttons
+    const folderCancelBtn = document.getElementById('folder-cancel-btn');
+    const folderSelectBtn = document.getElementById('folder-select-btn');
+    const createFolderBtn = document.getElementById('create-folder-btn');
+    const refreshFoldersBtn = document.getElementById('refresh-folders-btn');
+
+    if (folderCancelBtn) {
+      folderCancelBtn.addEventListener('click', () => {
+        this.closeFolderModal();
+      });
+    }
+
+    if (folderSelectBtn) {
+      folderSelectBtn.addEventListener('click', () => {
+        this.confirmFolderSelection();
+      });
+    }
+
+    if (createFolderBtn) {
+      createFolderBtn.addEventListener('click', () => {
+        this.showCreateFolderModal();
+      });
+    }
+
+    if (refreshFoldersBtn) {
+      refreshFoldersBtn.addEventListener('click', () => {
+        this.refreshFolderList();
+      });
+    }
+
+    // Create folder modal buttons
+    const createFolderCancelBtn = document.getElementById('create-folder-cancel-btn');
+    const createFolderConfirmBtn = document.getElementById('create-folder-confirm-btn');
+
+    if (createFolderCancelBtn) {
+      createFolderCancelBtn.addEventListener('click', () => {
+        this.closeCreateFolderModal();
+      });
+    }
+
+    if (createFolderConfirmBtn) {
+      createFolderConfirmBtn.addEventListener('click', () => {
+        this.createNewFolder();
       });
     }
   }
@@ -240,7 +350,13 @@ class CareerManagerPopup {
     const eventsList = document.getElementById('events-list');
     const emptyState = document.getElementById('empty-state');
 
-    if (this.events.length === 0) {
+    // Check if elements exist
+    if (!eventsList || !emptyState) {
+      console.warn('Events list or empty state element not found');
+      return;
+    }
+
+    if (!this.events || this.events.length === 0) {
       emptyState.style.display = 'block';
       return;
     }
@@ -286,6 +402,10 @@ class CareerManagerPopup {
   }
 
   updateStats() {
+    if (!this.events || !Array.isArray(this.events)) {
+      this.events = [];
+    }
+
     const totalEvents = this.events.length;
     const currentMonth = new Date().getMonth();
     const currentYear = new Date().getFullYear();
@@ -297,9 +417,13 @@ class CareerManagerPopup {
 
     const syncedEvents = this.events.filter(event => event.synced && event.synced.googleSheets).length;
 
-    document.getElementById('total-events').textContent = totalEvents;
-    document.getElementById('this-month').textContent = thisMonthEvents;
-    document.getElementById('synced-events').textContent = syncedEvents;
+    const totalElement = document.getElementById('total-events');
+    const thisMonthElement = document.getElementById('this-month');
+    const syncedElement = document.getElementById('synced-events');
+
+    if (totalElement) totalElement.textContent = totalEvents;
+    if (thisMonthElement) thisMonthElement.textContent = thisMonthEvents;
+    if (syncedElement) syncedElement.textContent = syncedEvents;
   }
 
   async syncEvents() {
@@ -470,16 +594,148 @@ class CareerManagerPopup {
 
   async selectDriveFolder() {
     try {
-      this.showToast('구글 드라이브 폴더 선택 기능을 구현 중입니다...', 'info');
+      // Check if Drive is authenticated
+      const driveAuth = await this.getStoredAuth('drive_auth');
+      if (!driveAuth || !driveAuth.access_token) {
+        this.showError('구글 드라이브 인증이 필요합니다.');
+        return;
+      }
+
+      // Load current settings
+      await this.loadDriveSettings();
       
-      // TODO: Implement Google Drive folder picker
-      // For now, use root folder
-      const selectedFolder = document.getElementById('selected-folder');
-      selectedFolder.innerHTML = '<span class="folder-path">루트 폴더 (기본)</span>';
+      // Show folder selection modal
+      this.showFolderModal();
       
     } catch (error) {
       this.showError('폴더 선택 중 오류 발생: ' + error.message);
     }
+  }
+
+  async loadDriveSettings() {
+    try {
+      const response = await this.sendMessageToBackground({
+        action: 'getDriveSettings'
+      });
+      
+      if (response.success) {
+        this.driveSettings = response.settings;
+        this.updateFolderDisplay();
+        this.updateFilenameSettings();
+      }
+    } catch (error) {
+      console.error('Error loading drive settings:', error);
+    }
+  }
+
+  async saveDriveSettings() {
+    try {
+      await this.sendMessageToBackground({
+        action: 'saveDriveSettings',
+        params: { settings: this.driveSettings }
+      });
+    } catch (error) {
+      console.error('Error saving drive settings:', error);
+    }
+  }
+
+  updateFolderDisplay() {
+    const selectedFolder = document.getElementById('selected-folder');
+    const folderName = this.driveSettings.selectedFolderName || '루트 폴더';
+    selectedFolder.innerHTML = `<span class="folder-path">${folderName}</span>`;
+  }
+
+  updateFilenameSettings() {
+    // Update filename type radio buttons
+    const isCustom = this.driveSettings.customFilename && this.driveSettings.customFilename.trim();
+    const templateRadio = document.querySelector('input[name="filename-type"][value="template"]');
+    const customRadio = document.querySelector('input[name="filename-type"][value="custom"]');
+    
+    if (isCustom) {
+      customRadio.checked = true;
+      templateRadio.checked = false;
+    } else {
+      templateRadio.checked = true;
+      customRadio.checked = false;
+    }
+    
+    // Update template selection
+    const templateSelect = document.getElementById('filename-template');
+    if (templateSelect && this.driveSettings.filenameTemplate) {
+      templateSelect.value = this.driveSettings.filenameTemplate;
+    }
+    
+    // Update custom filename input
+    const customInput = document.getElementById('custom-filename');
+    if (customInput) {
+      customInput.value = this.driveSettings.customFilename || '';
+    }
+    
+    // Update UI state
+    this.handleFilenameTypeChange(isCustom ? 'custom' : 'template');
+  }
+
+  handleFilenameTypeChange(type) {
+    const templateSelect = document.getElementById('filename-template');
+    const customInput = document.getElementById('custom-filename');
+    
+    if (type === 'custom') {
+      templateSelect.disabled = true;
+      customInput.disabled = false;
+      customInput.focus();
+    } else {
+      templateSelect.disabled = false;
+      customInput.disabled = true;
+    }
+    
+    this.updateFilenamePreview();
+  }
+
+  updateFilenamePreview() {
+    const previewElement = document.getElementById('filename-preview');
+    const customRadio = document.querySelector('input[name="filename-type"][value="custom"]');
+    
+    let preview = '';
+    
+    if (customRadio.checked) {
+      const customInput = document.getElementById('custom-filename');
+      preview = customInput.value.trim() || '파일명을 입력하세요';
+    } else {
+      const templateSelect = document.getElementById('filename-template');
+      const template = templateSelect.value;
+      const roleNames = {
+        instructor: '강사활동',
+        judge: '심사활동',
+        mentor: '멘토링활동',
+        other: '기타활동'
+      };
+      
+      // Get current period selection for preview
+      const periodType = document.getElementById('period-type').value;
+      let period = '';
+      
+      switch (periodType) {
+        case 'year':
+          period = new Date().getFullYear().toString();
+          break;
+        case 'month':
+          const now = new Date();
+          period = `${now.getFullYear()}년${(now.getMonth() + 1).toString().padStart(2, '0')}월`;
+          break;
+        case 'custom':
+          period = '2025_01_01_2025_12_31';
+          break;
+      }
+      
+      preview = template
+        .replace('{role}', roleNames.instructor)
+        .replace('{period}', period)
+        .replace('{year}', new Date().getFullYear().toString())
+        .replace('{month}', (new Date().getMonth() + 1).toString().padStart(2, '0'))
+        .replace('{date}', new Date().toISOString().split('T')[0].replace(/-/g, ''));
+    }
+    
+    previewElement.textContent = preview;
   }
 
   async startDataCollection() {
@@ -556,7 +812,7 @@ class CareerManagerPopup {
       careerTypes,
       keywords,
       periodType,
-      selectedFolder: 'root' // TODO: Implement folder selection
+      selectedFolder: this.driveSettings.selectedFolderId || 'root'
     };
   }
 
@@ -595,13 +851,25 @@ class CareerManagerPopup {
       this.updateProgress(10, '캘린더 연결 중...');
       
       // Get calendar events using background script
-      const events = await this.sendMessageToBackground({
+      const response = await this.sendMessageToBackground({
         action: 'getCalendarEvents',
         params: {
           timeMin: config.dateRange.start,
           timeMax: config.dateRange.end
         }
       });
+
+      // Check if response is successful and has events
+      if (!response.success) {
+        throw new Error(response.error || '캘린더 데이터를 가져오는데 실패했습니다.');
+      }
+
+      // Extract events from response and ensure it's an array
+      const events = Array.isArray(response.events) ? response.events : 
+                    Array.isArray(response.items) ? response.items : 
+                    Array.isArray(response) ? response : [];
+
+      console.log('Retrieved events:', events.length, 'items');
 
       this.updateProgress(30, '이벤트 데이터 분석 중...');
 
@@ -631,15 +899,19 @@ class CareerManagerPopup {
   }
 
   async processEvents(events, config) {
-    const DataProcessor = (await import('../utils/dataProcessor.js')).default;
-    const processor = new DataProcessor();
-    
+    // Ensure events is an array
+    if (!Array.isArray(events)) {
+      console.error('Events is not an array:', events);
+      return [];
+    }
+
+    // For now, use a simple classification instead of importing DataProcessor
     const processedEvents = [];
     
     for (const event of events) {
       try {
-        // Classify event
-        const classification = processor.classifyByRole(event);
+        // Simple classification based on keywords in title/description
+        const classification = this.classifyEventByRole(event);
         
         // Filter by career types
         if (!config.careerTypes.includes(classification.role)) {
@@ -671,28 +943,78 @@ class CareerManagerPopup {
     return processedEvents;
   }
 
+  classifyEventByRole(event) {
+    const title = (event.summary || '').toLowerCase();
+    const description = (event.description || '').toLowerCase();
+    const text = `${title} ${description}`;
+    
+    // Simple keyword-based classification
+    if (text.includes('강의') || text.includes('수업') || text.includes('특강') || 
+        text.includes('워크샵') || text.includes('세미나') || text.includes('lecture')) {
+      return { role: 'instructor', confidence: 0.8 };
+    }
+    
+    if (text.includes('심사') || text.includes('평가') || text.includes('검토') || 
+        text.includes('evaluation') || text.includes('review')) {
+      return { role: 'judge', confidence: 0.8 };
+    }
+    
+    if (text.includes('멘토링') || text.includes('코칭') || text.includes('상담') || 
+        text.includes('mentoring') || text.includes('coaching')) {
+      return { role: 'mentor', confidence: 0.8 };
+    }
+    
+    return { role: 'other', confidence: 0.5 };
+  }
+
   async createSpreadsheets(events, config) {
+    // Ensure events is an array
+    if (!Array.isArray(events)) {
+      console.error('Events is not an array in createSpreadsheets:', events);
+      return {};
+    }
+
     const createdSheets = {};
     const groupedEvents = this.groupEventsByRole(events);
     
-    for (const [role, roleEvents] of Object.entries(groupedEvents)) {
-      if (roleEvents.length === 0) continue;
-      
-      const sheetTitle = this.generateSheetTitle(role, config);
+    for (const [role, roleEvents] of Object.entries(groupedEvents || {})) {
+      if (!roleEvents || roleEvents.length === 0) continue;
       
       try {
-        const sheetInfo = await this.sendMessageToBackground({
-          action: 'createSpreadsheet',
-          params: {
-            title: sheetTitle,
-            role: role
-          }
-        });
+        let response;
         
-        createdSheets[role] = {
-          ...sheetInfo,
-          events: roleEvents
-        };
+        if (this.spreadsheetSettings.type === 'existing' && this.spreadsheetSettings.selectedSpreadsheetId) {
+          // Add new tab to existing spreadsheet
+          const tabTitle = this.generateTabTitle(role, config);
+          response = await this.sendMessageToBackground({
+            action: 'addSheetTab',
+            params: {
+              spreadsheetId: this.spreadsheetSettings.selectedSpreadsheetId,
+              tabTitle: tabTitle,
+              role: role
+            }
+          });
+        } else {
+          // Create new spreadsheet
+          const sheetTitle = this.generateSheetTitle(role, config);
+          response = await this.sendMessageToBackground({
+            action: 'createSpreadsheet',
+            params: {
+              title: sheetTitle,
+              role: role,
+              folderId: this.driveSettings.selectedFolderId || 'root'
+            }
+          });
+        }
+        
+        if (response.success) {
+          createdSheets[role] = {
+            ...response,
+            events: roleEvents
+          };
+        } else {
+          console.error(`Failed to create sheet for ${role}:`, response.error);
+        }
         
       } catch (error) {
         console.error(`Failed to create sheet for ${role}:`, error);
@@ -702,16 +1024,7 @@ class CareerManagerPopup {
     return createdSheets;
   }
 
-  groupEventsByRole(events) {
-    return events.reduce((groups, event) => {
-      const role = event.role || 'other';
-      if (!groups[role]) groups[role] = [];
-      groups[role].push(event);
-      return groups;
-    }, {});
-  }
-
-  generateSheetTitle(role, config) {
+  generateTabTitle(role, config) {
     const roleNames = {
       instructor: '강사활동',
       judge: '심사활동', 
@@ -723,6 +1036,53 @@ class CareerManagerPopup {
     const dateStr = this.formatDateRangeForTitle(config);
     
     return `${roleName}_${dateStr}`;
+  }
+
+  groupEventsByRole(events) {
+    // Ensure events is an array
+    if (!Array.isArray(events)) {
+      console.error('Events is not an array in groupEventsByRole:', events);
+      return {};
+    }
+
+    return events.reduce((groups, event) => {
+      const role = event.role || 'other';
+      if (!groups[role]) groups[role] = [];
+      groups[role].push(event);
+      return groups;
+    }, {});
+  }
+
+  generateSheetTitle(role, config) {
+    // Use custom filename if specified
+    const customRadio = document.querySelector('input[name="filename-type"][value="custom"]');
+    if (customRadio && customRadio.checked) {
+      const customFilename = document.getElementById('custom-filename').value.trim();
+      if (customFilename) {
+        return customFilename;
+      }
+    }
+    
+    // Use template-based filename
+    const templateSelect = document.getElementById('filename-template');
+    const template = templateSelect ? templateSelect.value : '{role}_{period}';
+    
+    const roleNames = {
+      instructor: '강사활동',
+      judge: '심사활동', 
+      mentor: '멘토링활동',
+      other: '기타활동'
+    };
+    
+    const roleName = roleNames[role] || '기타활동';
+    const dateStr = this.formatDateRangeForTitle(config);
+    
+    return template
+      .replace('{role}', roleName)
+      .replace('{period}', dateStr)
+      .replace('{year}', new Date().getFullYear().toString())
+      .replace('{month}', (new Date().getMonth() + 1).toString().padStart(2, '0'))
+      .replace('{date}', new Date().toISOString().split('T')[0].replace(/-/g, ''));
   }
 
   formatDateRangeForTitle(config) {
@@ -744,13 +1104,23 @@ class CareerManagerPopup {
   }
 
   async populateSpreadsheets(createdSheets, events) {
+    if (!createdSheets || typeof createdSheets !== 'object') {
+      console.error('createdSheets is not a valid object:', createdSheets);
+      return;
+    }
+
     for (const [role, sheetInfo] of Object.entries(createdSheets)) {
       try {
+        if (!sheetInfo || !sheetInfo.spreadsheetId) {
+          console.error(`Invalid sheet info for role ${role}:`, sheetInfo);
+          continue;
+        }
+
         await this.sendMessageToBackground({
           action: 'populateSpreadsheet',
           params: {
             spreadsheetId: sheetInfo.spreadsheetId,
-            events: sheetInfo.events,
+            events: sheetInfo.events || [],
             role: role
           }
         });
@@ -761,24 +1131,39 @@ class CareerManagerPopup {
   }
 
   showCollectionResults(events, createdSheets) {
-    document.getElementById('collection-progress').style.display = 'none';
-    document.getElementById('collection-results').style.display = 'block';
+    const progressElement = document.getElementById('collection-progress');
+    const resultsElement = document.getElementById('collection-results');
+    const collectedCountElement = document.getElementById('collected-count');
+    const sheetsCreatedElement = document.getElementById('sheets-created');
+    const sheetsContainer = document.getElementById('created-sheets');
+
+    if (progressElement) progressElement.style.display = 'none';
+    if (resultsElement) resultsElement.style.display = 'block';
     
     // Update stats
-    document.getElementById('collected-count').textContent = events.length;
-    document.getElementById('sheets-created').textContent = Object.keys(createdSheets).length;
+    if (collectedCountElement) {
+      collectedCountElement.textContent = Array.isArray(events) ? events.length : 0;
+    }
+    if (sheetsCreatedElement) {
+      sheetsCreatedElement.textContent = createdSheets ? Object.keys(createdSheets).length : 0;
+    }
     
     // Add sheet links
-    const sheetsContainer = document.getElementById('created-sheets');
-    sheetsContainer.innerHTML = '';
-    
-    for (const [role, sheetInfo] of Object.entries(createdSheets)) {
-      const link = document.createElement('a');
-      link.href = sheetInfo.webViewLink;
-      link.target = '_blank';
-      link.className = 'sheet-link';
-      link.textContent = `${this.getRoleName(role)} (${sheetInfo.events.length}개)`;
-      sheetsContainer.appendChild(link);
+    if (sheetsContainer) {
+      sheetsContainer.innerHTML = '';
+      
+      if (createdSheets && typeof createdSheets === 'object') {
+        for (const [role, sheetInfo] of Object.entries(createdSheets)) {
+          if (sheetInfo && sheetInfo.webViewLink) {
+            const link = document.createElement('a');
+            link.href = sheetInfo.webViewLink;
+            link.target = '_blank';
+            link.className = 'sheet-link';
+            link.textContent = `${this.getRoleName(role)} (${Array.isArray(sheetInfo.events) ? sheetInfo.events.length : 0}개)`;
+            sheetsContainer.appendChild(link);
+          }
+        }
+      }
     }
   }
 
@@ -955,14 +1340,435 @@ class CareerManagerPopup {
       // Always update UI to show dashboard if at least Google Calendar is connected
       this.updateUI();
       
-      // If both services are connected, show a brief success message
+      // Load drive settings if both services are connected
       if (isGoogleConnected && isDriveConnected) {
+        await this.loadDriveSettings();
         this.showToast('모든 서비스가 연결되었습니다. 메인 페이지로 이동합니다.', 'success');
       }
       
     } catch (error) {
       console.error('Error checking authentication status:', error);
       this.updateUI();
+    }
+  }
+
+  // === 폴더 선택 모달 관련 메서드들 ===
+
+  async showFolderModal() {
+    const modal = document.getElementById('folder-modal');
+    
+    // Reset modal state
+    this.currentFolderId = this.driveSettings.selectedFolderId || 'root';
+    this.selectedFolderId = this.currentFolderId;
+    this.folderHistory = [];
+    
+    // Load folder list
+    await this.loadFolderList();
+    
+    // Show modal
+    modal.style.display = 'flex';
+    setTimeout(() => {
+      modal.classList.add('show');
+    }, 10);
+  }
+
+  closeFolderModal() {
+    const modal = document.getElementById('folder-modal');
+    modal.classList.remove('show');
+    setTimeout(() => {
+      modal.style.display = 'none';
+    }, 300);
+  }
+
+  async confirmFolderSelection() {
+    try {
+      // Get selected folder info
+      const selectedFolder = document.querySelector('.folder-item.selected');
+      if (!selectedFolder) {
+        // If no folder is selected, use current folder
+        const folderId = this.currentFolderId || 'root';
+        const folderName = this.getCurrentFolderName() || '루트 폴더';
+        
+        // Update settings
+        this.driveSettings.selectedFolderId = folderId;
+        this.driveSettings.selectedFolderName = folderName;
+      } else {
+        const folderId = selectedFolder.dataset.folderId;
+        const folderName = selectedFolder.dataset.folderName;
+        
+        // Update settings
+        this.driveSettings.selectedFolderId = folderId;
+        this.driveSettings.selectedFolderName = folderName;
+      }
+      
+      // Save settings
+      await this.saveDriveSettings();
+      
+      // Update UI
+      this.updateFolderDisplay();
+      
+      // Close modal
+      this.closeFolderModal();
+      
+      this.showToast(`폴더 "${this.driveSettings.selectedFolderName}"이 선택되었습니다.`, 'success');
+      
+    } catch (error) {
+      this.showError('폴더 선택 중 오류가 발생했습니다: ' + error.message);
+    }
+  }
+
+  async loadFolderList() {
+    const folderList = document.getElementById('folder-list');
+    folderList.innerHTML = '<div class="loading-folders">폴더 목록을 불러오는 중...</div>';
+    
+    try {
+      const response = await this.sendMessageToBackground({
+        action: 'listDriveFolders',
+        params: { 
+          parentId: this.currentFolderId 
+        }
+      });
+      
+      if (response.success) {
+        this.renderFolderList(response.folders);
+        this.updateBreadcrumb();
+      } else {
+        folderList.innerHTML = '<div class="empty-folder">폴더를 불러올 수 없습니다.</div>';
+      }
+    } catch (error) {
+      folderList.innerHTML = '<div class="empty-folder">폴더 불러오기 실패</div>';
+      console.error('Error loading folder list:', error);
+    }
+  }
+
+  renderFolderList(folders) {
+    const folderList = document.getElementById('folder-list');
+    
+    if (folders.length === 0) {
+      folderList.innerHTML = '<div class="empty-folder">이 폴더는 비어있습니다.</div>';
+      return;
+    }
+    
+    folderList.innerHTML = folders.map(folder => `
+      <div class="folder-item" data-folder-id="${folder.id}" data-folder-name="${folder.name}">
+        <div class="folder-icon">📁</div>
+        <div class="folder-info">
+          <div class="folder-name">${folder.name}</div>
+          <div class="folder-meta">폴더 • ${folder.modifiedTime ? new Date(folder.modifiedTime).toLocaleDateString() : ''}</div>
+        </div>
+      </div>
+    `).join('');
+    
+    // Add click handlers
+    folderList.querySelectorAll('.folder-item').forEach(item => {
+      item.addEventListener('click', () => {
+        this.selectFolder(item);
+      });
+      
+      item.addEventListener('dblclick', () => {
+        this.navigateToFolder(item.dataset.folderId, item.dataset.folderName);
+      });
+    });
+  }
+
+  selectFolder(folderItem) {
+    // Remove previous selection
+    document.querySelectorAll('.folder-item').forEach(item => {
+      item.classList.remove('selected');
+    });
+    
+    // Add selection to clicked item
+    folderItem.classList.add('selected');
+    
+    // Update selected folder ID
+    this.selectedFolderId = folderItem.dataset.folderId;
+  }
+
+  async navigateToFolder(folderId, folderName) {
+    // Add current folder to history
+    this.folderHistory.push({
+      id: this.currentFolderId,
+      name: this.getCurrentFolderName()
+    });
+    
+    // Navigate to new folder
+    this.currentFolderId = folderId;
+    this.selectedFolderId = folderId;
+    
+    // Reload folder list
+    await this.loadFolderList();
+  }
+
+  getCurrentFolderName() {
+    const breadcrumb = document.getElementById('folder-breadcrumb');
+    const breadcrumbItems = breadcrumb.querySelectorAll('.breadcrumb-item');
+    return breadcrumbItems[breadcrumbItems.length - 1]?.textContent || '루트 폴더';
+  }
+
+  updateBreadcrumb() {
+    const breadcrumb = document.getElementById('folder-breadcrumb');
+    
+    // Build breadcrumb from history
+    let breadcrumbHTML = '<span class="breadcrumb-item" data-folder-id="root">루트 폴더</span>';
+    
+    for (const folder of this.folderHistory) {
+      breadcrumbHTML += `<span class="breadcrumb-item" data-folder-id="${folder.id}">${folder.name}</span>`;
+    }
+    
+    breadcrumb.innerHTML = breadcrumbHTML;
+    
+    // Add click handlers for breadcrumb navigation
+    breadcrumb.querySelectorAll('.breadcrumb-item').forEach(item => {
+      item.addEventListener('click', () => {
+        this.navigateToBreadcrumb(item.dataset.folderId);
+      });
+    });
+  }
+
+  async navigateToBreadcrumb(folderId) {
+    // Find the folder in history and truncate history
+    const folderIndex = this.folderHistory.findIndex(f => f.id === folderId);
+    
+    if (folderId === 'root') {
+      this.folderHistory = [];
+      this.currentFolderId = 'root';
+    } else if (folderIndex >= 0) {
+      this.folderHistory = this.folderHistory.slice(0, folderIndex + 1);
+      this.currentFolderId = folderId;
+    }
+    
+    this.selectedFolderId = this.currentFolderId;
+    await this.loadFolderList();
+  }
+
+  async refreshFolderList() {
+    await this.loadFolderList();
+  }
+
+  async showCreateFolderModal() {
+    const modal = document.getElementById('create-folder-modal');
+    const input = document.getElementById('new-folder-name');
+    
+    // Clear input
+    input.value = '';
+    
+    // Show modal
+    modal.style.display = 'flex';
+    setTimeout(() => {
+      modal.classList.add('show');
+      input.focus();
+    }, 10);
+  }
+
+  closeCreateFolderModal() {
+    const modal = document.getElementById('create-folder-modal');
+    modal.classList.remove('show');
+    setTimeout(() => {
+      modal.style.display = 'none';
+    }, 300);
+  }
+
+  async createNewFolder() {
+    try {
+      const input = document.getElementById('new-folder-name');
+      const folderName = input.value.trim();
+      
+      if (!folderName) {
+        this.showError('폴더 이름을 입력해주세요.');
+        return;
+      }
+      
+      // Create folder
+      const response = await this.sendMessageToBackground({
+        action: 'createDriveFolder',
+        params: {
+          name: folderName,
+          parentId: this.currentFolderId
+        }
+      });
+      
+      if (response.success) {
+        this.showToast(`폴더 "${folderName}"이 생성되었습니다.`, 'success');
+        this.closeCreateFolderModal();
+        await this.loadFolderList();
+      } else {
+        this.showError('폴더 생성에 실패했습니다: ' + response.error);
+      }
+      
+    } catch (error) {
+      this.showError('폴더 생성 중 오류가 발생했습니다: ' + error.message);
+    }
+  }
+
+  // === 스프레드시트 선택 관련 메서드들 ===
+
+  setupSpreadsheetListeners() {
+    // Spreadsheet type radio buttons
+    const spreadsheetRadios = document.querySelectorAll('input[name="spreadsheet-type"]');
+    spreadsheetRadios.forEach(radio => {
+      radio.addEventListener('change', (e) => {
+        this.handleSpreadsheetTypeChange(e.target.value);
+      });
+    });
+
+    // Spreadsheet selection button
+    const selectSpreadsheetBtn = document.getElementById('select-spreadsheet-btn');
+    if (selectSpreadsheetBtn) {
+      selectSpreadsheetBtn.addEventListener('click', () => {
+        this.showSpreadsheetModal();
+      });
+    }
+
+    // Spreadsheet modal buttons
+    const spreadsheetCancelBtn = document.getElementById('spreadsheet-cancel-btn');
+    const spreadsheetSelectBtn = document.getElementById('spreadsheet-select-btn');
+
+    if (spreadsheetCancelBtn) {
+      spreadsheetCancelBtn.addEventListener('click', () => {
+        this.closeSpreadsheetModal();
+      });
+    }
+
+    if (spreadsheetSelectBtn) {
+      spreadsheetSelectBtn.addEventListener('click', () => {
+        this.confirmSpreadsheetSelection();
+      });
+    }
+  }
+
+  handleSpreadsheetTypeChange(type) {
+    const selectBtn = document.getElementById('select-spreadsheet-btn');
+    const selectedSpreadsheet = document.getElementById('selected-spreadsheet');
+    
+    this.spreadsheetSettings.type = type;
+    
+    if (type === 'existing') {
+      selectBtn.disabled = false;
+      selectedSpreadsheet.style.display = 'block';
+    } else {
+      selectBtn.disabled = true;
+      selectedSpreadsheet.style.display = 'none';
+    }
+  }
+
+  async showSpreadsheetModal() {
+    const modal = document.getElementById('spreadsheet-modal');
+    
+    // Load spreadsheet list
+    await this.loadSpreadsheetList();
+    
+    // Show modal
+    modal.style.display = 'flex';
+    setTimeout(() => {
+      modal.classList.add('show');
+    }, 10);
+  }
+
+  closeSpreadsheetModal() {
+    const modal = document.getElementById('spreadsheet-modal');
+    modal.classList.remove('show');
+    setTimeout(() => {
+      modal.style.display = 'none';
+    }, 300);
+  }
+
+  async loadSpreadsheetList() {
+    const spreadsheetList = document.getElementById('spreadsheet-list');
+    spreadsheetList.innerHTML = '<div class="loading-spreadsheets">스프레드시트 목록을 불러오는 중...</div>';
+    
+    try {
+      const response = await this.sendMessageToBackground({
+        action: 'listSpreadsheets',
+        params: {}
+      });
+      
+      if (response.success) {
+        this.renderSpreadsheetList(response.spreadsheets);
+      } else {
+        spreadsheetList.innerHTML = '<div class="empty-spreadsheets">스프레드시트를 불러올 수 없습니다.</div>';
+      }
+    } catch (error) {
+      spreadsheetList.innerHTML = '<div class="empty-spreadsheets">스프레드시트 불러오기 실패</div>';
+      console.error('Error loading spreadsheet list:', error);
+    }
+  }
+
+  renderSpreadsheetList(spreadsheets) {
+    const spreadsheetList = document.getElementById('spreadsheet-list');
+    
+    if (spreadsheets.length === 0) {
+      spreadsheetList.innerHTML = '<div class="empty-spreadsheets">스프레드시트가 없습니다.</div>';
+      return;
+    }
+    
+    spreadsheetList.innerHTML = spreadsheets.map(sheet => `
+      <div class="spreadsheet-item" data-spreadsheet-id="${sheet.id}" data-spreadsheet-name="${sheet.name}">
+        <div class="spreadsheet-icon">📊</div>
+        <div class="spreadsheet-details">
+          <div class="spreadsheet-name">${sheet.name}</div>
+          <div class="spreadsheet-meta">수정일: ${sheet.modifiedTime ? new Date(sheet.modifiedTime).toLocaleDateString() : ''}</div>
+        </div>
+      </div>
+    `).join('');
+    
+    // Add click handlers
+    spreadsheetList.querySelectorAll('.spreadsheet-item').forEach(item => {
+      item.addEventListener('click', () => {
+        this.selectSpreadsheet(item);
+      });
+    });
+  }
+
+  selectSpreadsheet(spreadsheetItem) {
+    // Remove previous selection
+    document.querySelectorAll('.spreadsheet-item').forEach(item => {
+      item.classList.remove('selected');
+    });
+    
+    // Add selection to clicked item
+    spreadsheetItem.classList.add('selected');
+    
+    // Update selected spreadsheet info
+    this.spreadsheetSettings.selectedSpreadsheetId = spreadsheetItem.dataset.spreadsheetId;
+    this.spreadsheetSettings.selectedSpreadsheetName = spreadsheetItem.dataset.spreadsheetName;
+  }
+
+  async confirmSpreadsheetSelection() {
+    try {
+      const selectedSpreadsheet = document.querySelector('.spreadsheet-item.selected');
+      if (!selectedSpreadsheet) {
+        this.showError('스프레드시트를 선택해주세요.');
+        return;
+      }
+      
+      const spreadsheetId = selectedSpreadsheet.dataset.spreadsheetId;
+      const spreadsheetName = selectedSpreadsheet.dataset.spreadsheetName;
+      
+      // Update settings
+      this.spreadsheetSettings.selectedSpreadsheetId = spreadsheetId;
+      this.spreadsheetSettings.selectedSpreadsheetName = spreadsheetName;
+      
+      // Update UI
+      this.updateSpreadsheetDisplay();
+      
+      // Close modal
+      this.closeSpreadsheetModal();
+      
+      this.showToast(`스프레드시트 "${spreadsheetName}"이 선택되었습니다.`, 'success');
+      
+    } catch (error) {
+      this.showError('스프레드시트 선택 중 오류가 발생했습니다: ' + error.message);
+    }
+  }
+
+  updateSpreadsheetDisplay() {
+    const selectedSpreadsheet = document.getElementById('selected-spreadsheet');
+    const spreadsheetInfo = selectedSpreadsheet.querySelector('.spreadsheet-info');
+    
+    if (this.spreadsheetSettings.selectedSpreadsheetName) {
+      spreadsheetInfo.textContent = `선택된 스프레드시트: ${this.spreadsheetSettings.selectedSpreadsheetName}`;
+    } else {
+      spreadsheetInfo.textContent = '선택된 스프레드시트가 없습니다.';
     }
   }
 }

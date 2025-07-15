@@ -1,8 +1,6 @@
 // Options page script
 class CareerManagerOptions {
   constructor() {
-    this.storage = new StorageManager();
-    this.auth = new AuthManager();
     this.init();
   }
 
@@ -14,29 +12,29 @@ class CareerManagerOptions {
 
   async loadSettings() {
     try {
-      const settings = await this.storage.getSettings();
+      const settings = await this.getStoredData('settings') || this.getDefaultSettings();
       
       // Load keyword settings
-      document.getElementById('lecture-keywords').value = settings.keywords.lecture.join(', ');
-      document.getElementById('evaluation-keywords').value = settings.keywords.evaluation.join(', ');
-      document.getElementById('mentoring-keywords').value = settings.keywords.mentoring.join(', ');
+      document.getElementById('lecture-keywords').value = settings.keywords?.lecture?.join(', ') || '';
+      document.getElementById('evaluation-keywords').value = settings.keywords?.evaluation?.join(', ') || '';
+      document.getElementById('mentoring-keywords').value = settings.keywords?.mentoring?.join(', ') || '';
       
       // Load sync settings
-      document.getElementById('auto-sync').checked = settings.autoSync;
-      document.getElementById('sync-interval').value = settings.syncInterval;
+      document.getElementById('auto-sync').checked = settings.autoSync ?? true;
+      document.getElementById('sync-interval').value = settings.syncInterval || 30;
       
       // Load export settings
-      document.getElementById('export-format').value = settings.export.format;
-      document.getElementById('include-description').checked = settings.export.includeDescription;
-      document.getElementById('include-location').checked = settings.export.includeLocation;
+      document.getElementById('export-format').value = settings.export?.format || 'spreadsheet';
+      document.getElementById('include-description').checked = settings.export?.includeDescription ?? true;
+      document.getElementById('include-location').checked = settings.export?.includeLocation ?? true;
       
       // Load notification settings
-      document.getElementById('notifications-enabled').checked = settings.notifications.enabled;
-      document.getElementById('upcoming-events').checked = settings.notifications.upcomingEvents;
-      document.getElementById('sync-complete').checked = settings.notifications.syncComplete;
+      document.getElementById('notifications-enabled').checked = settings.notifications?.enabled ?? true;
+      document.getElementById('upcoming-events').checked = settings.notifications?.upcomingEvents ?? true;
+      document.getElementById('sync-complete').checked = settings.notifications?.syncComplete ?? false;
       
       // Load Notion token
-      const notionToken = await this.storage.getAuthToken('notion');
+      const notionToken = await this.getStoredData('notion_token');
       if (notionToken) {
         document.getElementById('notion-token').value = notionToken;
       }
@@ -94,11 +92,11 @@ class CareerManagerOptions {
   async checkAuthStatus() {
     try {
       // Check Google Calendar auth
-      const googleAuth = await this.auth.isGoogleAuthenticated();
+      const googleAuth = await this.getStoredData('google_auth');
       const googleStatus = document.getElementById('google-status');
       const googleBtn = document.getElementById('google-connect-btn');
 
-      if (googleAuth) {
+      if (googleAuth && googleAuth.access_token) {
         googleStatus.textContent = 'Connected';
         googleStatus.className = 'auth-status connected';
         googleBtn.textContent = 'Disconnect';
@@ -108,11 +106,12 @@ class CareerManagerOptions {
         googleBtn.textContent = 'Connect';
       }
 
-      // Check Google Drive auth (same as Calendar for now)
+      // Check Google Drive auth
+      const driveAuth = await this.getStoredData('drive_auth');
       const driveStatus = document.getElementById('drive-status');
       const driveBtn = document.getElementById('drive-connect-btn');
 
-      if (googleAuth) {
+      if (driveAuth && driveAuth.access_token) {
         driveStatus.textContent = 'Connected';
         driveStatus.className = 'auth-status connected';
         driveBtn.textContent = 'Disconnect';
@@ -135,22 +134,20 @@ class CareerManagerOptions {
         btn.textContent = 'Connecting...';
         btn.disabled = true;
 
-        // Request authentication
-        const result = await this.auth.handleAuthFlow('google', [
-          'https://www.googleapis.com/auth/calendar.readonly',
-          'https://www.googleapis.com/auth/drive.file',
-          'https://www.googleapis.com/auth/spreadsheets'
-        ]);
+        // Request authentication through background script
+        const result = await this.sendMessageToBackground({
+          action: 'authenticate_google'
+        });
 
         if (result.success) {
           this.showToast('Google authentication successful!', 'success');
           this.checkAuthStatus();
         } else {
-          this.showToast(result.error, 'error');
+          this.showToast(result.error || 'Authentication failed', 'error');
         }
       } else {
         // Disconnect
-        await this.auth.revokeGoogleToken();
+        await this.removeStoredData('google_auth');
         this.showToast('Google account disconnected', 'info');
         this.checkAuthStatus();
       }
@@ -164,8 +161,38 @@ class CareerManagerOptions {
   }
 
   async handleDriveAuth() {
-    // For now, Drive auth is same as Google auth
-    await this.handleGoogleAuth();
+    try {
+      const btn = document.getElementById('drive-connect-btn');
+      const originalText = btn.textContent;
+      
+      if (originalText === 'Connect') {
+        btn.textContent = 'Connecting...';
+        btn.disabled = true;
+
+        // Request Drive authentication through background script
+        const result = await this.sendMessageToBackground({
+          action: 'authenticate_drive'
+        });
+
+        if (result.success) {
+          this.showToast('Google Drive authentication successful!', 'success');
+          this.checkAuthStatus();
+        } else {
+          this.showToast(result.error || 'Authentication failed', 'error');
+        }
+      } else {
+        // Disconnect
+        await this.removeStoredData('drive_auth');
+        this.showToast('Google Drive disconnected', 'info');
+        this.checkAuthStatus();
+      }
+      
+      btn.textContent = originalText;
+      btn.disabled = false;
+    } catch (error) {
+      console.error('Drive auth error:', error);
+      this.showToast('Authentication error occurred', 'error');
+    }
   }
 
   async saveNotionToken() {
@@ -185,7 +212,7 @@ class CareerManagerOptions {
       }
 
       // Save token
-      await this.auth.setNotionToken(token);
+      await this.setStoredData('notion_token', token);
       this.showToast('Notion token saved successfully!', 'success');
     } catch (error) {
       console.error('Error saving Notion token:', error);
@@ -215,7 +242,7 @@ class CareerManagerOptions {
         }
       };
 
-      await this.storage.saveSettings(settings);
+      await this.setStoredData('settings', settings);
       this.showToast('Settings saved successfully!', 'success');
     } catch (error) {
       console.error('Error saving settings:', error);
@@ -344,6 +371,61 @@ class CareerManagerOptions {
     } catch {
       return false;
     }
+  }
+
+  // Storage utility methods
+  async getStoredData(key) {
+    return new Promise((resolve) => {
+      chrome.storage.local.get([key], (result) => {
+        resolve(result[key]);
+      });
+    });
+  }
+
+  async setStoredData(key, value) {
+    return new Promise((resolve) => {
+      chrome.storage.local.set({ [key]: value }, resolve);
+    });
+  }
+
+  async removeStoredData(key) {
+    return new Promise((resolve) => {
+      chrome.storage.local.remove([key], resolve);
+    });
+  }
+
+  async sendMessageToBackground(message) {
+    return new Promise((resolve, reject) => {
+      chrome.runtime.sendMessage(message, (response) => {
+        if (chrome.runtime.lastError) {
+          reject(new Error(chrome.runtime.lastError.message));
+        } else {
+          resolve(response);
+        }
+      });
+    });
+  }
+
+  getDefaultSettings() {
+    return {
+      keywords: {
+        lecture: ['강의', '특강', '수업', 'lecture', 'seminar'],
+        evaluation: ['심사', '평가', '검토', 'evaluation', 'review'],
+        mentoring: ['멘토링', '코칭', '상담', 'mentoring', 'coaching']
+      },
+      autoSync: true,
+      syncInterval: 30,
+      export: {
+        format: 'spreadsheet',
+        includeDescription: true,
+        includeLocation: true
+      },
+      notifications: {
+        enabled: true,
+        upcomingEvents: true,
+        syncComplete: false
+      }
+    };
   }
 }
 

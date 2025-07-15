@@ -42,6 +42,24 @@ class CareerManagerBackground {
         case 'get_spreadsheet_summary':
           this.getSpreadsheetSummary(sendResponse);
           break;
+        case 'listDriveFolders':
+          this.listDriveFolders(request.params, sendResponse);
+          break;
+        case 'createDriveFolder':
+          this.createDriveFolder(request.params, sendResponse);
+          break;
+        case 'getDriveSettings':
+          this.getDriveSettings(sendResponse);
+          break;
+        case 'saveDriveSettings':
+          this.saveDriveSettings(request.params, sendResponse);
+          break;
+        case 'listSpreadsheets':
+          this.listSpreadsheets(request.params, sendResponse);
+          break;
+        case 'addSheetTab':
+          this.addSheetTab(request.params, sendResponse);
+          break;
         default:
           sendResponse({ success: false, error: 'Unknown action' });
       }
@@ -787,12 +805,23 @@ class CareerManagerBackground {
         throw new Error('Google 인증이 필요합니다.');
       }
 
+      // Get drive settings for folder and filename configuration
+      const settings = await this.getSettings();
+      const driveSettings = settings.driveSettings || {
+        selectedFolderId: 'root',
+        filenameTemplate: '{role}_{period}',
+        customFilename: ''
+      };
+
+      // Generate filename based on settings
+      const filename = this.generateFilename(params, driveSettings);
+
       // Create spreadsheet using Google Sheets API
       const createUrl = 'https://sheets.googleapis.com/v4/spreadsheets';
       
       const spreadsheetData = {
         properties: {
-          title: params.title
+          title: filename
         },
         sheets: [{
           properties: {
@@ -805,7 +834,7 @@ class CareerManagerBackground {
         }]
       };
 
-      console.log('Creating spreadsheet:', params.title);
+      console.log('Creating spreadsheet:', filename);
 
       const createResponse = await fetch(createUrl, {
         method: 'POST',
@@ -826,13 +855,18 @@ class CareerManagerBackground {
       // Add headers to the sheet
       await this.addHeadersToSheet(spreadsheet.spreadsheetId, params.role, authData.access_token);
 
+      // Move spreadsheet to selected folder if not root
+      if (driveSettings.selectedFolderId && driveSettings.selectedFolderId !== 'root') {
+        await this.moveFileToFolder(spreadsheet.spreadsheetId, driveSettings.selectedFolderId, authData.access_token);
+      }
+
       console.log('Spreadsheet created:', spreadsheet.spreadsheetUrl);
 
       sendResponse({
         success: true,
         spreadsheetId: spreadsheet.spreadsheetId,
         webViewLink: spreadsheet.spreadsheetUrl,
-        title: params.title
+        title: filename
       });
 
     } catch (error) {
@@ -842,6 +876,39 @@ class CareerManagerBackground {
         error: error.message
       });
     }
+  }
+
+  generateFilename(params, driveSettings) {
+    // Use custom filename if provided
+    if (driveSettings.customFilename && driveSettings.customFilename.trim()) {
+      return driveSettings.customFilename.trim();
+    }
+
+    // Use template
+    let filename = driveSettings.filenameTemplate || '{role}_{period}';
+    const now = new Date();
+    
+    // Replace placeholders
+    const roleNames = {
+      instructor: '강사활동',
+      judge: '심사활동',
+      mentor: '멘토링활동',
+      other: '기타활동'
+    };
+
+    const replacements = {
+      '{role}': roleNames[params.role] || params.role,
+      '{period}': params.period || now.getFullYear().toString(),
+      '{year}': now.getFullYear().toString(),
+      '{month}': (now.getMonth() + 1).toString().padStart(2, '0'),
+      '{date}': now.toISOString().split('T')[0].replace(/-/g, '')
+    };
+
+    for (const [placeholder, value] of Object.entries(replacements)) {
+      filename = filename.replace(new RegExp(placeholder, 'g'), value);
+    }
+
+    return filename;
   }
 
   getSheetNameForRole(role) {
@@ -854,7 +921,7 @@ class CareerManagerBackground {
     return names[role] || '데이터';
   }
 
-  async addHeadersToSheet(spreadsheetId, role, accessToken) {
+  async addHeadersToSheet(spreadsheetId, role, accessToken, sheetId = null) {
     // Define column headers based on role
     const headers = [
       '제목',
@@ -869,7 +936,26 @@ class CareerManagerBackground {
       '생성일'
     ];
 
-    const updateUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/A1:J1?valueInputOption=RAW`;
+    // Determine the sheet name/range
+    let sheetRange = 'A1:J1';
+    if (sheetId !== null) {
+      // For new tabs, we need to get the sheet name first
+      const sheetInfoResponse = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?fields=sheets.properties`, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`
+        }
+      });
+      
+      if (sheetInfoResponse.ok) {
+        const sheetInfo = await sheetInfoResponse.json();
+        const sheet = sheetInfo.sheets.find(s => s.properties.sheetId === sheetId);
+        if (sheet) {
+          sheetRange = `${sheet.properties.title}!A1:J1`;
+        }
+      }
+    }
+
+    const updateUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${sheetRange}?valueInputOption=RAW`;
 
     const response = await fetch(updateUrl, {
       method: 'PUT',
@@ -978,6 +1064,298 @@ class CareerManagerBackground {
         resolve(result[key]);
       });
     });
+  }
+
+  // === Google Drive 폴더 관련 메소드들 ===
+
+  async listDriveFolders(params, sendResponse) {
+    try {
+      const authData = await this.getStoredData('drive_auth');
+      if (!authData || !authData.access_token) {
+        throw new Error('Google Drive 인증이 필요합니다.');
+      }
+
+      const parentId = params.parentId || 'root';
+      const query = `mimeType = 'application/vnd.google-apps.folder' and '${parentId}' in parents and trashed = false`;
+      
+      const url = `https://www.googleapis.com/drive/v3/files?` +
+        new URLSearchParams({
+          q: query,
+          fields: 'files(id, name, parents, createdTime, modifiedTime)',
+          orderBy: 'name'
+        });
+
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${authData.access_token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Drive API error: ${errorData.error?.message || response.statusText}`);
+      }
+
+      const data = await response.json();
+      
+      sendResponse({
+        success: true,
+        folders: data.files || [],
+        parentId: parentId
+      });
+
+    } catch (error) {
+      console.error('List folders error:', error);
+      sendResponse({
+        success: false,
+        error: error.message
+      });
+    }
+  }
+
+  async createDriveFolder(params, sendResponse) {
+    try {
+      const authData = await this.getStoredData('drive_auth');
+      if (!authData || !authData.access_token) {
+        throw new Error('Google Drive 인증이 필요합니다.');
+      }
+
+      const { name, parentId = 'root' } = params;
+      
+      const url = 'https://www.googleapis.com/drive/v3/files';
+      
+      const folderData = {
+        name: name,
+        parents: [parentId],
+        mimeType: 'application/vnd.google-apps.folder'
+      };
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${authData.access_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(folderData)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Folder creation error: ${errorData.error?.message || response.statusText}`);
+      }
+
+      const folder = await response.json();
+      
+      sendResponse({
+        success: true,
+        folder: {
+          id: folder.id,
+          name: folder.name,
+          parents: folder.parents
+        }
+      });
+
+    } catch (error) {
+      console.error('Create folder error:', error);
+      sendResponse({
+        success: false,
+        error: error.message
+      });
+    }
+  }
+
+  async getDriveSettings(sendResponse) {
+    try {
+      const settings = await this.getSettings();
+      const driveSettings = settings.driveSettings || {
+        selectedFolderId: 'root',
+        selectedFolderName: '루트 폴더',
+        filenameTemplate: '{role}_{period}',
+        customFilename: ''
+      };
+
+      sendResponse({
+        success: true,
+        settings: driveSettings
+      });
+
+    } catch (error) {
+      console.error('Get drive settings error:', error);
+      sendResponse({
+        success: false,
+        error: error.message
+      });
+    }
+  }
+
+  async saveDriveSettings(params, sendResponse) {
+    try {
+      const currentSettings = await this.getSettings();
+      const updatedSettings = {
+        ...currentSettings,
+        driveSettings: params.settings
+      };
+
+      await this.updateSettings(updatedSettings);
+
+      sendResponse({
+        success: true,
+        settings: params.settings
+      });
+
+    } catch (error) {
+      console.error('Save drive settings error:', error);
+      sendResponse({
+        success: false,
+        error: error.message
+      });
+    }
+  }
+
+  async moveFileToFolder(fileId, folderId, accessToken) {
+    try {
+      // Get current parents
+      const fileResponse = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?fields=parents`, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`
+        }
+      });
+
+      if (!fileResponse.ok) {
+        throw new Error('Failed to get file parents');
+      }
+
+      const fileData = await fileResponse.json();
+      const previousParents = fileData.parents.join(',');
+
+      // Move file
+      const moveResponse = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?addParents=${folderId}&removeParents=${previousParents}`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`
+        }
+      });
+
+      if (!moveResponse.ok) {
+        throw new Error('Failed to move file');
+      }
+
+      return { success: true };
+
+    } catch (error) {
+      console.error('Move file error:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async listSpreadsheets(params, sendResponse) {
+    try {
+      const authData = await this.getStoredData('google_auth');
+      if (!authData || !authData.access_token) {
+        throw new Error('Google 인증이 필요합니다.');
+      }
+
+      // Search for spreadsheets using Google Drive API
+      const searchUrl = 'https://www.googleapis.com/drive/v3/files';
+      const searchParams = new URLSearchParams({
+        q: "mimeType='application/vnd.google-apps.spreadsheet'",
+        fields: 'files(id,name,modifiedTime,webViewLink)',
+        orderBy: 'modifiedTime desc',
+        pageSize: '50'
+      });
+
+      const response = await fetch(`${searchUrl}?${searchParams}`, {
+        headers: {
+          'Authorization': `Bearer ${authData.access_token}`
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`스프레드시트 목록 조회 실패: ${errorData.error?.message || response.statusText}`);
+      }
+
+      const data = await response.json();
+      
+      sendResponse({
+        success: true,
+        spreadsheets: data.files || []
+      });
+
+    } catch (error) {
+      console.error('Error listing spreadsheets:', error);
+      sendResponse({
+        success: false,
+        error: error.message
+      });
+    }
+  }
+
+  async addSheetTab(params, sendResponse) {
+    try {
+      const { spreadsheetId, tabTitle, role } = params;
+      
+      const authData = await this.getStoredData('google_auth');
+      if (!authData || !authData.access_token) {
+        throw new Error('Google 인증이 필요합니다.');
+      }
+
+      // Add new sheet tab using Google Sheets API
+      const batchUpdateUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`;
+      
+      const addSheetRequest = {
+        requests: [{
+          addSheet: {
+            properties: {
+              title: tabTitle,
+              gridProperties: {
+                rowCount: 1000,
+                columnCount: 20
+              }
+            }
+          }
+        }]
+      };
+
+      const response = await fetch(batchUpdateUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${authData.access_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(addSheetRequest)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`탭 추가 실패: ${errorData.error?.message || response.statusText}`);
+      }
+
+      const result = await response.json();
+      const newSheetId = result.replies[0].addSheet.properties.sheetId;
+
+      // Add headers to the new sheet
+      await this.addHeadersToSheet(spreadsheetId, role, authData.access_token, newSheetId);
+
+      // Get spreadsheet info for web view link
+      const spreadsheetUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`;
+
+      sendResponse({
+        success: true,
+        spreadsheetId: spreadsheetId,
+        sheetId: newSheetId,
+        webViewLink: spreadsheetUrl,
+        title: tabTitle
+      });
+
+    } catch (error) {
+      console.error('Error adding sheet tab:', error);
+      sendResponse({
+        success: false,
+        error: error.message
+      });
+    }
   }
 }
 

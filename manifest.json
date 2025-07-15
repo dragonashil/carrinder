@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Carrinder",
-  "version": "1.0.0",
+  "version": "1.0.3",
   "description": "Manage your professional career events from Google Calendar",
   "permissions": [
     "identity",
