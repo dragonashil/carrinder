@@ -23,12 +23,34 @@ class CareerManagerPopup {
       selectedSpreadsheetName: null
     };
     
+    // Check if opened in new window
+    this.checkWindowMode();
+    
     this.setupEventListeners();
     await this.checkAuthStatus();
     await this.loadEvents();
     await this.loadSpreadsheetSummary();
     await this.loadDriveSettings();
     this.updateUI();
+  }
+
+  checkWindowMode() {
+    // Check if opened in a new window (not as popup)
+    if (window.location.search.includes('window=true') || 
+        window.outerWidth > 850 || 
+        window.chrome?.runtime?.getURL && window.location.href.includes('popup.html')) {
+      
+      // Check if it's actually a separate window
+      if (window.outerWidth > 850) {
+        document.body.classList.add('window-mode');
+        
+        // Hide expand button in window mode
+        const expandBtn = document.getElementById('expand-btn');
+        if (expandBtn) {
+          expandBtn.style.display = 'none';
+        }
+      }
+    }
   }
 
   setupEventListeners() {
@@ -70,6 +92,13 @@ class CareerManagerPopup {
     if (reconnectBtn) {
       reconnectBtn.addEventListener('click', () => {
         this.openSettings();
+      });
+    }
+
+    const expandBtn = document.getElementById('expand-btn');
+    if (expandBtn) {
+      expandBtn.addEventListener('click', () => {
+        this.openInNewWindow();
       });
     }
   }
@@ -258,12 +287,14 @@ class CareerManagerPopup {
       // Send message to background script to handle authentication
       chrome.runtime.sendMessage({
         action: 'authenticate_google'
-      }, (response) => {
+      }, async (response) => {
         if (response.success) {
           this.isAuthenticated = true;
-          this.checkAuthStatus();
+          await this.checkAuthStatus();
           this.loadEvents();
-          this.showSuccessModal('Google Calendar', 'Google 캘린더가 성공적으로 연결되었습니다. 메인 페이지에서 데이터 수집을 시작하실 수 있습니다.');
+          
+          // Check if both services are now connected
+          await this.checkAndShowSuccessModal();
         } else {
           console.error('Authentication failed:', response.error);
           this.showError('Google authentication failed. Please try again.');
@@ -288,10 +319,12 @@ class CareerManagerPopup {
       // Send message to background script to handle Drive authentication
       chrome.runtime.sendMessage({
         action: 'authenticate_drive'
-      }, (response) => {
+      }, async (response) => {
         if (response.success) {
-          this.checkAuthStatus();
-          this.showSuccessModal('Google Drive', 'Google 드라이브가 성공적으로 연결되었습니다. 이제 모든 서비스가 연결되어 스프레드시트 생성이 가능합니다.');
+          await this.checkAuthStatus();
+          
+          // Check if both services are now connected
+          await this.checkAndShowSuccessModal();
         } else {
           console.error('Drive authentication failed:', response.error);
           this.showError('Google Drive authentication failed. Please try again.');
@@ -523,6 +556,20 @@ class CareerManagerPopup {
 
   openSettings() {
     chrome.runtime.openOptionsPage();
+  }
+
+  openInNewWindow() {
+    // Create a new window with the popup content
+    chrome.windows.create({
+      url: chrome.runtime.getURL('popup.html'),
+      type: 'popup',
+      width: 1000,
+      height: 720,
+      focused: true
+    });
+    
+    // Close the current popup
+    window.close();
   }
 
   // === 새로운 데이터 수집 기능들 ===
@@ -1249,6 +1296,28 @@ class CareerManagerPopup {
 
   // === 모달 관련 메서드들 ===
 
+  async checkAndShowSuccessModal() {
+    try {
+      // Check if both services are connected
+      const googleAuth = await this.getStoredAuth('google_auth');
+      const driveAuth = await this.getStoredAuth('drive_auth');
+      
+      const isGoogleConnected = googleAuth && googleAuth.access_token;
+      const isDriveConnected = driveAuth && driveAuth.access_token;
+      
+      // Only show modal if both services are connected
+      if (isGoogleConnected && isDriveConnected) {
+        this.showSuccessModal('All Services', '모든 서비스가 성공적으로 연결되었습니다. 이제 데이터 수집과 스프레드시트 생성이 가능합니다.');
+      } else if (isGoogleConnected && !isDriveConnected) {
+        this.showToast('Google 캘린더가 연결되었습니다. Google 드라이브도 연결해주세요.', 'success');
+      } else if (!isGoogleConnected && isDriveConnected) {
+        this.showToast('Google 드라이브가 연결되었습니다. Google 캘린더도 연결해주세요.', 'success');
+      }
+    } catch (error) {
+      console.error('Error checking auth status for modal:', error);
+    }
+  }
+
   async showSuccessModal(serviceName, message) {
     const modal = document.getElementById('success-modal');
     const modalMessage = document.getElementById('modal-message');
@@ -1259,6 +1328,9 @@ class CareerManagerPopup {
 
     // Get all connected services and show them
     await this.updateConnectedServices(connectedServices);
+
+    // Add click outside to close
+    this.addModalClickOutsideHandler(modal, () => this.closeSuccessModal());
 
     // Show modal with animation
     modal.style.display = 'flex';
@@ -1343,7 +1415,7 @@ class CareerManagerPopup {
       // Load drive settings if both services are connected
       if (isGoogleConnected && isDriveConnected) {
         await this.loadDriveSettings();
-        this.showToast('모든 서비스가 연결되었습니다. 메인 페이지로 이동합니다.', 'success');
+        // Don't show toast here as checkAndShowSuccessModal already handles it
       }
       
     } catch (error) {
@@ -1364,6 +1436,9 @@ class CareerManagerPopup {
     
     // Load folder list
     await this.loadFolderList();
+    
+    // Add click outside to close
+    this.addModalClickOutsideHandler(modal, () => this.closeFolderModal());
     
     // Show modal
     modal.style.display = 'flex';
@@ -1552,6 +1627,9 @@ class CareerManagerPopup {
     // Clear input
     input.value = '';
     
+    // Add click outside to close
+    this.addModalClickOutsideHandler(modal, () => this.closeCreateFolderModal());
+    
     // Show modal
     modal.style.display = 'flex';
     setTimeout(() => {
@@ -1656,6 +1734,9 @@ class CareerManagerPopup {
     
     // Load spreadsheet list
     await this.loadSpreadsheetList();
+    
+    // Add click outside to close
+    this.addModalClickOutsideHandler(modal, () => this.closeSpreadsheetModal());
     
     // Show modal
     modal.style.display = 'flex';
@@ -1770,6 +1851,25 @@ class CareerManagerPopup {
     } else {
       spreadsheetInfo.textContent = '선택된 스프레드시트가 없습니다.';
     }
+  }
+
+  // === 모달 공통 기능 ===
+
+  addModalClickOutsideHandler(modal, closeCallback) {
+    // Remove existing listener if any
+    if (modal._clickOutsideHandler) {
+      modal.removeEventListener('click', modal._clickOutsideHandler);
+    }
+    
+    // Add new listener
+    modal._clickOutsideHandler = (event) => {
+      // Check if click is on the modal overlay (not on the modal content)
+      if (event.target === modal) {
+        closeCallback();
+      }
+    };
+    
+    modal.addEventListener('click', modal._clickOutsideHandler);
   }
 }
 
