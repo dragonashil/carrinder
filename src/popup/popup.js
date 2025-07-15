@@ -82,6 +82,14 @@ class CareerManagerPopup {
         this.resetCollection();
       });
     }
+
+    // Modal continue button
+    const modalContinueBtn = document.getElementById('modal-continue-btn');
+    if (modalContinueBtn) {
+      modalContinueBtn.addEventListener('click', () => {
+        this.closeSuccessModal();
+      });
+    }
   }
 
   async checkAuthStatus() {
@@ -145,6 +153,7 @@ class CareerManagerPopup {
           this.isAuthenticated = true;
           this.checkAuthStatus();
           this.loadEvents();
+          this.showSuccessModal('Google Calendar', 'Google 캘린더가 성공적으로 연결되었습니다. 메인 페이지에서 데이터 수집을 시작하실 수 있습니다.');
         } else {
           console.error('Authentication failed:', response.error);
           this.showError('Google authentication failed. Please try again.');
@@ -172,6 +181,7 @@ class CareerManagerPopup {
       }, (response) => {
         if (response.success) {
           this.checkAuthStatus();
+          this.showSuccessModal('Google Drive', 'Google 드라이브가 성공적으로 연결되었습니다. 이제 모든 서비스가 연결되어 스프레드시트 생성이 가능합니다.');
         } else {
           console.error('Drive authentication failed:', response.error);
           this.showError('Google Drive authentication failed. Please try again.');
@@ -850,6 +860,110 @@ class CareerManagerPopup {
         }
       }, 300);
     }, 3000);
+  }
+
+  // === 모달 관련 메서드들 ===
+
+  async showSuccessModal(serviceName, message) {
+    const modal = document.getElementById('success-modal');
+    const modalMessage = document.getElementById('modal-message');
+    const connectedServices = document.getElementById('connected-services');
+
+    // Set message
+    modalMessage.textContent = message;
+
+    // Get all connected services and show them
+    await this.updateConnectedServices(connectedServices);
+
+    // Show modal with animation
+    modal.style.display = 'flex';
+    setTimeout(() => {
+      modal.classList.add('show');
+    }, 10);
+  }
+
+  async updateConnectedServices(container) {
+    container.innerHTML = '';
+    
+    try {
+      // Check which services are connected
+      const googleAuth = await this.getStoredAuth('google_auth');
+      const driveAuth = await this.getStoredAuth('drive_auth');
+      
+      if (googleAuth && googleAuth.access_token) {
+        this.addServiceItem(container, 'Google Calendar', '✓');
+      }
+      
+      if (driveAuth && driveAuth.access_token) {
+        this.addServiceItem(container, 'Google Drive', '✓');
+      }
+
+      // Add placeholder for future services
+      if (!googleAuth || !googleAuth.access_token) {
+        this.addServiceItem(container, 'Google Calendar', '○', false);
+      }
+      if (!driveAuth || !driveAuth.access_token) {
+        this.addServiceItem(container, 'Google Drive', '○', false);
+      }
+      
+      // TODO: Add Notion when implemented
+      this.addServiceItem(container, 'Notion (준비중)', '○', false);
+      
+    } catch (error) {
+      console.error('Error updating connected services:', error);
+    }
+  }
+
+  addServiceItem(container, serviceName, icon, isConnected = true) {
+    const serviceItem = document.createElement('div');
+    serviceItem.className = 'service-item';
+    if (!isConnected) {
+      serviceItem.style.opacity = '0.5';
+    }
+    
+    serviceItem.innerHTML = `
+      <div class="service-icon">${icon}</div>
+      <span>${serviceName}</span>
+    `;
+    
+    container.appendChild(serviceItem);
+  }
+
+  closeSuccessModal() {
+    const modal = document.getElementById('success-modal');
+    
+    modal.classList.remove('show');
+    setTimeout(() => {
+      modal.style.display = 'none';
+      // Check if all required services are connected and redirect to main page
+      this.checkAuthAndRedirectToMain();
+    }, 300);
+  }
+
+  async checkAuthAndRedirectToMain() {
+    try {
+      // Check if both Google Calendar and Drive are connected
+      const googleAuth = await this.getStoredAuth('google_auth');
+      const driveAuth = await this.getStoredAuth('drive_auth');
+      
+      const isGoogleConnected = googleAuth && googleAuth.access_token;
+      const isDriveConnected = driveAuth && driveAuth.access_token;
+      
+      // Update authentication status
+      this.isAuthenticated = isGoogleConnected;
+      
+      // Always update UI to show dashboard if at least Google Calendar is connected
+      this.updateUI();
+      
+      // If both services are connected, show a brief success message
+      if (isGoogleConnected && isDriveConnected) {
+        this.showToast('모든 서비스가 연결되었습니다. 메인 페이지로 이동합니다.', 'success');
+      }
+      
+    } catch (error) {
+      console.error('Error checking authentication status:', error);
+      this.updateUI();
+    }
   }
 }
 

@@ -76,9 +76,14 @@
               </div>
               
               <div id="custom-selector" class="date-selector custom-range" style="display: none;">
-                <input type="date" id="start-date" class="date-input" />
-                <span>~</span>
-                <input type="date" id="end-date" class="date-input" />
+                <div class="date-range-group">
+                  <label class="date-label">시작 날짜</label>
+                  <input type="date" id="start-date" class="date-input" />
+                </div>
+                <div class="date-range-group">
+                  <label class="date-label">종료 날짜</label>
+                  <input type="date" id="end-date" class="date-input" />
+                </div>
               </div>
             </div>
           </div>
@@ -174,6 +179,25 @@
         </div>
       </div>
     </main>
+  </div>
+
+  <!-- Success Modal -->
+  <div class="modal-overlay" id="success-modal" style="display: none;">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="success-icon">✓</div>
+        <h2 class="modal-title">연결 성공!</h2>
+      </div>
+      <div class="modal-body">
+        <p class="modal-message" id="modal-message">Google 계정이 성공적으로 연결되었습니다.</p>
+        <div class="connected-services" id="connected-services">
+          <!-- Connected services will be shown here -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary btn-modal" id="modal-continue-btn">메인 페이지로 이동</button>
+      </div>
+    </div>
   </div>
 
   <script src="popup.js"></script>
