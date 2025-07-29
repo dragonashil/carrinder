@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Carrinder - 회원가입</title>
+  <link rel="stylesheet" href="auth.css">
+</head>
+<body>
+  <div class="container">
+    <div class="auth-card">
+      <div class="auth-header">
+        <div class="logo">
+          <h1 class="logo-text">Carrinder</h1>
+          <p class="logo-subtitle">경력 관리의 새로운 기준</p>
+        </div>
+      </div>
+
+      <div class="auth-content">
+        <!-- Step 1: Welcome -->
+        <div class="auth-step" id="step-welcome">
+          <div class="step-header">
+            <h2 class="step-title">Carrinder에 오신 것을 환영합니다!</h2>
+            <p class="step-description">Plus 요금제로 업그레이드하여 더 강력한 경력 관리 기능을 사용해보세요.</p>
+          </div>
+          
+          <div class="plan-summary">
+            <div class="plan-info">
+              <h3 class="plan-name">Plus 플랜</h3>
+              <div class="plan-features">
+                <div class="feature">⚡ Notion API 연동</div>
+                <div class="feature">⚡ 자동 데이터 수집</div>
+                <div class="feature">⚡ 우선 지원</div>
+              </div>
+            </div>
+            <div class="plan-price" id="selected-plan-price">
+              <span class="price">$5</span>
+              <span class="period">/월</span>
+            </div>
+          </div>
+
+          <div class="billing-selection">
+            <label class="billing-option">
+              <input type="radio" name="billing" value="monthly" checked>
+              <span class="billing-mark"></span>
+              <span class="billing-text">월간 결제 - $5/월</span>
+            </label>
+            <label class="billing-option highlighted">
+              <input type="radio" name="billing" value="yearly">
+              <span class="billing-mark"></span>
+              <span class="billing-text">연간 결제 - $50/년 <span class="save-badge">2개월 절약</span></span>
+            </label>
+          </div>
+
+          <div class="step-actions">
+            <button class="btn btn-primary" id="start-signup-btn">회원가입 시작하기</button>
+            <button class="btn btn-secondary" id="cancel-btn">취소</button>
+          </div>
+        </div>
+
+        <!-- Step 2: Google Login -->
+        <div class="auth-step" id="step-google-login" style="display: none;">
+          <div class="step-header">
+            <h2 class="step-title">Google 계정으로 간편 가입</h2>
+            <p class="step-description">이미 사용 중인 Google 계정으로 빠르게 Carrinder에 가입하세요.</p>
+          </div>
+
+          <div class="google-login-section">
+            <button class="btn btn-google" id="google-login-btn">
+              <svg class="google-icon" viewBox="0 0 24 24">
+                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+              </svg>
+              Google로 계속하기
+            </button>
+          </div>
+
+          <div class="step-actions">
+            <button class="btn btn-outline" id="back-to-welcome-btn">이전</button>
+          </div>
+        </div>
+
+        <!-- Step 3: User Info -->
+        <div class="auth-step" id="step-user-info" style="display: none;">
+          <div class="step-header">
+            <h2 class="step-title">회원 정보 확인</h2>
+            <p class="step-description">Google 계정 정보를 확인하고 추가 정보를 입력해주세요.</p>
+          </div>
+
+          <div class="user-info-section">
+            <div class="user-profile">
+              <img class="profile-image" id="profile-image" src="" alt="프로필 이미지">
+              <div class="profile-info">
+                <div class="profile-name" id="profile-name">-</div>
+                <div class="profile-email" id="profile-email">-</div>
+              </div>
+            </div>
+
+            <div class="additional-info">
+              <div class="form-group">
+                <label class="form-label">이름 (필수)</label>
+                <input type="text" class="form-input" id="user-name" placeholder="실명을 입력해주세요">
+              </div>
+              
+              <div class="form-group">
+                <label class="form-label">전화번호 (선택)</label>
+                <input type="tel" class="form-input" id="user-phone" placeholder="010-0000-0000">
+              </div>
+
+              <div class="form-group checkbox-group">
+                <label class="checkbox-label">
+                  <input type="checkbox" id="terms-agree" required>
+                  <span class="checkmark"></span>
+                  <span class="checkbox-text">
+                    <a href="#" class="link" id="terms-link">이용약관</a> 및 
+                    <a href="#" class="link" id="privacy-link">개인정보처리방침</a>에 동의합니다. (필수)
+                  </span>
+                </label>
+              </div>
+
+              <div class="form-group checkbox-group">
+                <label class="checkbox-label">
+                  <input type="checkbox" id="marketing-agree">
+                  <span class="checkmark"></span>
+                  <span class="checkbox-text">마케팅 정보 수신에 동의합니다. (선택)</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="step-actions">
+            <button class="btn btn-primary" id="proceed-payment-btn" disabled>결제하기</button>
+            <button class="btn btn-outline" id="back-to-google-btn">이전</button>
+          </div>
+        </div>
+
+        <!-- Step 4: Payment -->
+        <div class="auth-step" id="step-payment" style="display: none;">
+          <div class="step-header">
+            <h2 class="step-title">결제 정보</h2>
+            <p class="step-description">안전한 토스페이먼츠로 결제를 진행합니다.</p>
+          </div>
+
+          <div class="payment-summary">
+            <div class="summary-item">
+              <span class="summary-label">플랜</span>
+              <span class="summary-value">Carrinder Plus</span>
+            </div>
+            <div class="summary-item">
+              <span class="summary-label">결제 주기</span>
+              <span class="summary-value" id="payment-cycle">월간 결제</span>
+            </div>
+            <div class="summary-item total">
+              <span class="summary-label">총 결제 금액</span>
+              <span class="summary-value" id="total-amount">$5</span>
+            </div>
+          </div>
+
+          <div class="payment-section">
+            <div class="payment-methods">
+              <div class="payment-method active">
+                <div class="method-icon">💳</div>
+                <div class="method-info">
+                  <div class="method-name">토스페이먼츠</div>
+                  <div class="method-desc">카드, 계좌이체, 간편결제</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="step-actions">
+            <button class="btn btn-primary" id="start-payment-btn">결제 시작하기</button>
+            <button class="btn btn-outline" id="back-to-info-btn">이전</button>
+          </div>
+        </div>
+
+        <!-- Step 5: Success -->
+        <div class="auth-step" id="step-success" style="display: none;">
+          <div class="step-header">
+            <div class="success-icon">🎉</div>
+            <h2 class="step-title">환영합니다!</h2>
+            <p class="step-description">Carrinder Plus 회원가입이 완료되었습니다.</p>
+          </div>
+
+          <div class="success-info">
+            <div class="welcome-message">
+              <h3>이제 Plus 기능을 모두 사용할 수 있습니다!</h3>
+              <ul class="feature-list">
+                <li>✅ Notion API 연동</li>
+                <li>✅ 자동 데이터 수집</li>
+                <li>✅ 설정 가능한 동기화 주기</li>
+                <li>✅ 우선 지원 및 업데이트</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="step-actions">
+            <button class="btn btn-primary" id="complete-btn">시작하기</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Progress indicator -->
+      <div class="progress-indicator">
+        <div class="progress-step active" data-step="1">1</div>
+        <div class="progress-line"></div>
+        <div class="progress-step" data-step="2">2</div>
+        <div class="progress-line"></div>
+        <div class="progress-step" data-step="3">3</div>
+        <div class="progress-line"></div>
+        <div class="progress-step" data-step="4">4</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <!-- Toss Payments SDK -->
+  <script src="https://js.tosspayments.com/v1/payment"></script>
+  <script src="auth.js"></script>
+</body>
+</html>

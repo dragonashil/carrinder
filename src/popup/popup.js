@@ -95,6 +95,20 @@ class CareerManagerPopup {
       });
     }
 
+    const pricingBtn = document.getElementById('pricing-btn');
+    if (pricingBtn) {
+      pricingBtn.addEventListener('click', () => {
+        this.openPricing();
+      });
+    }
+
+    const notionAuthBtn = document.getElementById('notion-auth-btn');
+    if (notionAuthBtn) {
+      notionAuthBtn.addEventListener('click', () => {
+        this.handleNotionAuth();
+      });
+    }
+
     const expandBtn = document.getElementById('expand-btn');
     if (expandBtn) {
       expandBtn.addEventListener('click', () => {
@@ -326,6 +340,10 @@ class CareerManagerPopup {
       }, async (response) => {
         if (response.success) {
           this.isAuthenticated = true;
+          
+          // Auto-connect Drive and register Basic plan
+          await this.handleInitialGoogleAuth(response);
+          
           await this.checkAuthStatus();
           this.loadEvents();
           
@@ -645,6 +663,101 @@ class CareerManagerPopup {
 
   openSettings() {
     chrome.runtime.openOptionsPage();
+  }
+
+  openPricing() {
+    chrome.tabs.create({
+      url: chrome.runtime.getURL('pricing.html')
+    });
+  }
+
+  async handleInitialGoogleAuth(googleAuthResponse) {
+    try {
+      // Check if user already exists
+      const existingUser = await this.getStoredData('carrinderUser');
+      if (existingUser) {
+        console.log('User already registered:', existingUser);
+        return;
+      }
+
+      // Extract user info from Google auth response
+      const userInfo = googleAuthResponse.userInfo || {
+        name: googleAuthResponse.name || 'User',
+        email: googleAuthResponse.email || 'user@example.com',
+        picture: googleAuthResponse.picture || ''
+      };
+
+      // Auto-connect Google Drive
+      await this.autoConnectDrive();
+
+      // Register user with Basic plan
+      await this.registerBasicUser(userInfo);
+
+      this.showToast('Carrinder Basic 플랜으로 자동 가입되었습니다!', 'success');
+      
+    } catch (error) {
+      console.error('Error in initial Google auth:', error);
+      this.showToast('자동 설정 중 오류가 발생했습니다.', 'error');
+    }
+  }
+
+  async autoConnectDrive() {
+    try {
+      // Send message to background to connect Drive using existing Google auth
+      const response = await this.sendMessageToBackground({
+        action: 'auto_connect_drive'
+      });
+
+      if (response.success) {
+        console.log('Drive auto-connected successfully');
+      } else {
+        console.error('Drive auto-connect failed:', response.error);
+      }
+    } catch (error) {
+      console.error('Error auto-connecting Drive:', error);
+    }
+  }
+
+  async registerBasicUser(userInfo) {
+    try {
+      // Create Basic plan user data
+      const userData = {
+        id: 'user_' + Date.now(),
+        name: userInfo.name,
+        email: userInfo.email,
+        picture: userInfo.picture,
+        plan: 'basic',
+        billing: null,
+        registeredAt: new Date().toISOString(),
+        autoRegistered: true
+      };
+
+      // Store user data
+      await chrome.storage.sync.set({
+        carrinderUser: userData,
+        userPlan: {
+          plan: 'basic',
+          billing: null,
+          expires: null
+        }
+      });
+
+      console.log('Basic user registered:', userData);
+      
+    } catch (error) {
+      console.error('Error registering basic user:', error);
+      throw error;
+    }
+  }
+
+  handleNotionAuth() {
+    // Show message that Plus plan is required
+    this.showToast('Notion API는 Plus 요금제에서 사용할 수 있습니다.', 'info');
+    
+    // Open pricing page after a short delay
+    setTimeout(() => {
+      this.openPricing();
+    }, 1500);
   }
 
   openInNewWindow() {

@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Career Manager - 요금제</title>
+  <link rel="stylesheet" href="pricing.css">
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <h1 class="title">요금제 선택</h1>
+      <p class="subtitle">경력 관리에 맞는 플랜을 선택하세요</p>
+    </header>
+
+    <main class="main">
+      <div class="pricing-section">
+        <div class="pricing-cards">
+          <!-- Basic Plan -->
+          <div class="pricing-card basic-plan">
+            <div class="plan-header">
+              <h2 class="plan-name">Basic</h2>
+              <div class="plan-price">
+                <span class="price-amount">FREE</span>
+              </div>
+              <p class="plan-description">기본적인 경력 관리 기능</p>
+            </div>
+            
+            <div class="plan-features">
+              <div class="feature-item">
+                <span class="feature-icon">✓</span>
+                <span class="feature-text">구글 캘린더 데이터 추출</span>
+              </div>
+              <div class="feature-item">
+                <span class="feature-icon">✓</span>
+                <span class="feature-text">구글 드라이브 스프레드시트 저장</span>
+              </div>
+              <div class="feature-item">
+                <span class="feature-icon">✓</span>
+                <span class="feature-text">경력 이벤트 분류 (강사/심사/멘토링)</span>
+              </div>
+              <div class="feature-item">
+                <span class="feature-icon">✓</span>
+                <span class="feature-text">수동 데이터 수집</span>
+              </div>
+              <div class="feature-item">
+                <span class="feature-icon">✓</span>
+                <span class="feature-text">커스텀 기간 설정</span>
+              </div>
+            </div>
+            
+            <div class="plan-footer">
+              <button class="btn btn-outline current-plan" disabled>현재 플랜</button>
+            </div>
+          </div>
+
+          <!-- Plus Plan -->
+          <div class="pricing-card plus-plan featured">
+            <div class="featured-badge">추천</div>
+            <div class="plan-header">
+              <h2 class="plan-name">Plus</h2>
+              <div class="plan-price">
+                <div class="price-options">
+                  <div class="price-option">
+                    <span class="price-amount">$5</span>
+                    <span class="price-period">/월</span>
+                  </div>
+                  <div class="price-divider">또는</div>
+                  <div class="price-option highlighted">
+                    <span class="price-amount">$50</span>
+                    <span class="price-period">/년</span>
+                    <span class="price-save">2개월 절약</span>
+                  </div>
+                </div>
+              </div>
+              <p class="plan-description">고급 자동화 및 통합 기능</p>
+            </div>
+            
+            <div class="plan-features">
+              <div class="feature-item">
+                <span class="feature-icon">✓</span>
+                <span class="feature-text">Basic 플랜의 모든 기능</span>
+              </div>
+              <div class="feature-item premium">
+                <span class="feature-icon">⚡</span>
+                <span class="feature-text">Notion API 연동</span>
+              </div>
+              <div class="feature-item premium">
+                <span class="feature-icon">⚡</span>
+                <span class="feature-text">Notion 데이터베이스 동기화</span>
+              </div>
+              <div class="feature-item premium">
+                <span class="feature-icon">⚡</span>
+                <span class="feature-text">자동 데이터 수집 (Auto Sync)</span>
+              </div>
+              <div class="feature-item premium">
+                <span class="feature-icon">⚡</span>
+                <span class="feature-text">설정 가능한 동기화 주기</span>
+              </div>
+              <div class="feature-item premium">
+                <span class="feature-icon">⚡</span>
+                <span class="feature-text">우선 지원 및 업데이트</span>
+              </div>
+            </div>
+            
+            <div class="plan-footer">
+              <div class="billing-options">
+                <label class="radio-option">
+                  <input type="radio" name="billing" value="monthly" checked>
+                  <span class="radio-mark"></span>
+                  월간 결제 ($5/월)
+                </label>
+                <label class="radio-option">
+                  <input type="radio" name="billing" value="yearly">
+                  <span class="radio-mark"></span>
+                  연간 결제 ($50/년)
+                </label>
+              </div>
+              <button class="btn btn-primary upgrade-btn" id="upgrade-btn">Plus로 업그레이드</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Feature Comparison -->
+      <div class="comparison-section">
+        <h2 class="section-title">기능 비교</h2>
+        <div class="comparison-table">
+          <div class="comparison-header">
+            <div class="feature-column">기능</div>
+            <div class="plan-column">Basic</div>
+            <div class="plan-column">Plus</div>
+          </div>
+          
+          <div class="comparison-row">
+            <div class="feature-column">구글 캘린더 연동</div>
+            <div class="plan-column"><span class="check">✓</span></div>
+            <div class="plan-column"><span class="check">✓</span></div>
+          </div>
+          
+          <div class="comparison-row">
+            <div class="feature-column">구글 드라이브 저장</div>
+            <div class="plan-column"><span class="check">✓</span></div>
+            <div class="plan-column"><span class="check">✓</span></div>
+          </div>
+          
+          <div class="comparison-row">
+            <div class="feature-column">경력 이벤트 분류</div>
+            <div class="plan-column"><span class="check">✓</span></div>
+            <div class="plan-column"><span class="check">✓</span></div>
+          </div>
+          
+          <div class="comparison-row">
+            <div class="feature-column">Notion 연동</div>
+            <div class="plan-column"><span class="cross">✗</span></div>
+            <div class="plan-column"><span class="check premium">✓</span></div>
+          </div>
+          
+          <div class="comparison-row">
+            <div class="feature-column">자동 동기화</div>
+            <div class="plan-column"><span class="cross">✗</span></div>
+            <div class="plan-column"><span class="check premium">✓</span></div>
+          </div>
+          
+          <div class="comparison-row">
+            <div class="feature-column">우선 지원</div>
+            <div class="plan-column"><span class="cross">✗</span></div>
+            <div class="plan-column"><span class="check premium">✓</span></div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-actions">
+        <button class="btn btn-secondary" id="back-btn">뒤로 가기</button>
+      </div>
+      <p>&copy; 2024 Career Manager. All rights reserved.</p>
+    </footer>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="pricing.js"></script>
+</body>
+</html>

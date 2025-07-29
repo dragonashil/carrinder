@@ -102,6 +102,24 @@ body {
   gap: 12px;
 }
 
+/* Usage guide */
+.usage-guide {
+  text-align: center;
+  margin-bottom: 16px;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+}
+
+.guide-text {
+  font-size: 14px;
+  color: #495057;
+  margin: 0;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
 .auth-item {
   display: flex;
   align-items: center;
@@ -142,6 +160,26 @@ body {
 
 .auth-status.error {
   color: #ff6b6b;
+}
+
+.auth-status.plus-required {
+  color: #ffa500;
+  font-weight: 600;
+}
+
+/* Notion item specific styles */
+.notion-item {
+  opacity: 0.7;
+  background: #f9f9f9 !important;
+}
+
+.notion-item:hover {
+  background: #f5f5f5 !important;
+}
+
+.notion-item .btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* Connected button styles */

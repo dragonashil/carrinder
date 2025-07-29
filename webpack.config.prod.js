@@ -13,7 +13,9 @@ module.exports = {
     popup: './src/popup/popup.js',
     background: './src/background/background.js',
     content: './src/content/content.js',
-    options: './src/options/options.js'
+    options: './src/options/options.js',
+    pricing: './src/pricing/pricing.js',
+    auth: './src/auth/auth.js'
   },
   output: {
     path: path.resolve(__dirname, 'build/dist'),
@@ -60,6 +62,10 @@ module.exports = {
         { from: 'src/popup/popup.css', to: 'popup.css' },
         { from: 'src/options/options.html', to: 'options.html' },
         { from: 'src/options/options.css', to: 'options.css' },
+        { from: 'src/pricing/pricing.html', to: 'pricing.html' },
+        { from: 'src/pricing/pricing.css', to: 'pricing.css' },
+        { from: 'src/auth/auth.html', to: 'auth.html' },
+        { from: 'src/auth/auth.css', to: 'auth.css' },
         { from: 'src/content/content.css', to: 'content.css' },
         { from: 'src/assets', to: 'assets' }
       ]

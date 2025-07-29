@@ -66,6 +66,9 @@ class CareerManagerBackground {
         case 'folderSelected':
           this.handleFolderSelected(request.folder, sendResponse);
           break;
+        case 'auto_connect_drive':
+          this.autoConnectDrive(sendResponse);
+          break;
         default:
           sendResponse({ success: false, error: 'Unknown action' });
       }
@@ -1491,6 +1494,39 @@ class CareerManagerBackground {
 
     } catch (error) {
       console.error('Handle folder selected error:', error);
+      sendResponse({
+        success: false,
+        error: error.message
+      });
+    }
+  }
+
+  async autoConnectDrive(sendResponse) {
+    try {
+      // Get existing Google auth token
+      const googleAuth = await this.getStoredData('google_auth');
+      
+      if (!googleAuth || !googleAuth.access_token) {
+        throw new Error('Google authentication required');
+      }
+
+      // Store the same token for Drive auth (Google auth includes Drive scopes)
+      await this.storeData('drive_auth', {
+        access_token: googleAuth.access_token,
+        refresh_token: googleAuth.refresh_token,
+        expires_at: googleAuth.expires_at,
+        auto_connected: true
+      });
+
+      console.log('Drive auto-connected using Google auth token');
+
+      sendResponse({
+        success: true,
+        message: 'Drive auto-connected successfully'
+      });
+
+    } catch (error) {
+      console.error('Auto connect drive error:', error);
       sendResponse({
         success: false,
         error: error.message

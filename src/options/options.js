@@ -80,6 +80,11 @@ class CareerManagerOptions {
       this.clearData();
     });
 
+    // Pricing page button
+    document.getElementById('view-pricing-btn').addEventListener('click', () => {
+      this.openPricingPage();
+    });
+
     // File input
     document.getElementById('import-file').addEventListener('change', (event) => {
       const file = event.target.files[0];
@@ -337,6 +342,12 @@ class CareerManagerOptions {
       console.error('Error clearing data:', error);
       this.showToast('Error clearing data', 'error');
     }
+  }
+
+  openPricingPage() {
+    chrome.tabs.create({
+      url: chrome.runtime.getURL('pricing.html')
+    });
   }
 
   showToast(message, type = 'info') {
