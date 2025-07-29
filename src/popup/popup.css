@@ -144,6 +144,20 @@ body {
   color: #ff6b6b;
 }
 
+/* Connected button styles */
+#google-auth-btn.connected,
+#drive-auth-btn.connected {
+  background: #00d4aa !important;
+  color: white !important;
+  border-color: #00d4aa !important;
+}
+
+#google-auth-btn.connected:hover,
+#drive-auth-btn.connected:hover {
+  background: #00b894 !important;
+  border-color: #00b894 !important;
+}
+
 /* Dashboard */
 .dashboard {
   display: flex;
@@ -569,6 +583,49 @@ body {
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
+}
+
+/* Month Range Selector */
+.month-range-selector {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  width: 100%;
+}
+
+.month-input-group {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.date-separator {
+  font-size: 16px;
+  font-weight: 500;
+  color: #666;
+  padding-bottom: 10px;
+}
+
+.period-warning {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #fff3cd;
+  border: 1px solid #ffeaa7;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #856404;
+  margin-top: 8px;
+}
+
+.warning-icon {
+  font-size: 14px;
+}
+
+.warning-text {
+  font-weight: 500;
 }
 
 .custom-range {
@@ -1136,8 +1193,14 @@ body {
   transition: all 0.2s ease;
 }
 
-.breadcrumb-item:hover {
+.breadcrumb-item:hover:not(.current) {
   background: #f0f8ff;
+}
+
+.breadcrumb-item.current {
+  color: #666;
+  cursor: default;
+  font-weight: 600;
 }
 
 .breadcrumb-item:not(:last-child)::after {

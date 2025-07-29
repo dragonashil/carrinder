@@ -57,8 +57,12 @@ module.exports = {
     new CopyWebpackPlugin({
       patterns: [
         { from: 'src/popup/popup.html', to: 'popup.html' },
+        { from: 'src/popup/popup.css', to: 'popup.css' },
         { from: 'src/options/options.html', to: 'options.html' },
+        { from: 'src/options/options.css', to: 'options.css' },
         { from: 'src/content/content.css', to: 'content.css' },
+        { from: 'src/picker/picker.html', to: 'picker.html' },
+        { from: 'src/picker/picker.js', to: 'picker.js' },
         { from: 'src/assets', to: 'assets' }
       ]
     }),

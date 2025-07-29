@@ -43,7 +43,7 @@ class CareerManagerBackground {
           this.getSpreadsheetSummary(sendResponse);
           break;
         case 'listDriveFolders':
-          this.listDriveFolders(request.params, sendResponse);
+          this.listDriveContents(request.params, sendResponse);
           break;
         case 'createDriveFolder':
           this.createDriveFolder(request.params, sendResponse);
@@ -59,6 +59,12 @@ class CareerManagerBackground {
           break;
         case 'addSheetTab':
           this.addSheetTab(request.params, sendResponse);
+          break;
+        case 'getAccessToken':
+          this.getAccessToken(sendResponse);
+          break;
+        case 'folderSelected':
+          this.handleFolderSelected(request.folder, sendResponse);
           break;
         default:
           sendResponse({ success: false, error: 'Unknown action' });
@@ -82,7 +88,11 @@ class CareerManagerBackground {
 
   async authenticateGoogle(sendResponse) {
     try {
-      const token = await this.getAuthToken(['https://www.googleapis.com/auth/calendar.readonly']);
+      const token = await this.getAuthToken([
+        'https://www.googleapis.com/auth/calendar.readonly',
+        'https://www.googleapis.com/auth/spreadsheets',
+        'https://www.googleapis.com/auth/drive.file'
+      ]);
       
       if (token) {
         // Store token
@@ -100,8 +110,9 @@ class CareerManagerBackground {
   async authenticateDrive(sendResponse) {
     try {
       const token = await this.getAuthToken([
-        'https://www.googleapis.com/auth/drive.file',
-        'https://www.googleapis.com/auth/spreadsheets'
+        'https://www.googleapis.com/auth/calendar.readonly',
+        'https://www.googleapis.com/auth/spreadsheets',
+        'https://www.googleapis.com/auth/drive.file'
       ]);
       
       if (token) {
@@ -847,7 +858,16 @@ class CareerManagerBackground {
 
       if (!createResponse.ok) {
         const errorData = await createResponse.json();
-        throw new Error(`Spreadsheet creation error: ${errorData.error?.message || createResponse.statusText}`);
+        const errorMessage = errorData.error?.message || createResponse.statusText;
+        
+        // If insufficient authentication scopes, trigger re-authentication
+        if (errorMessage.includes('insufficient authentication scopes')) {
+          console.log('Insufficient scopes detected, clearing stored auth data to trigger re-authentication');
+          await this.clearStoredData('google_auth');
+          throw new Error('권한이 부족합니다. Google 서비스를 다시 연결해주세요.');
+        }
+        
+        throw new Error(`Spreadsheet creation error: ${errorMessage}`);
       }
 
       const spreadsheet = await createResponse.json();
@@ -856,8 +876,20 @@ class CareerManagerBackground {
       await this.addHeadersToSheet(spreadsheet.spreadsheetId, params.role, authData.access_token);
 
       // Move spreadsheet to selected folder if not root
-      if (driveSettings.selectedFolderId && driveSettings.selectedFolderId !== 'root') {
-        await this.moveFileToFolder(spreadsheet.spreadsheetId, driveSettings.selectedFolderId, authData.access_token);
+      const targetFolderId = params.folderId || driveSettings.selectedFolderId;
+      if (targetFolderId && targetFolderId !== 'root') {
+        console.log('Moving spreadsheet to folder:', targetFolderId);
+        try {
+          const moveResult = await this.moveFileToFolder(spreadsheet.spreadsheetId, targetFolderId, authData.access_token);
+          if (moveResult.success) {
+            console.log('Spreadsheet moved to folder successfully');
+          } else {
+            console.error('Failed to move spreadsheet to folder:', moveResult.error);
+          }
+        } catch (moveError) {
+          console.error('Error moving spreadsheet to folder:', moveError);
+          // Don't fail the entire operation if move fails
+        }
       }
 
       console.log('Spreadsheet created:', spreadsheet.spreadsheetUrl);
@@ -1066,9 +1098,15 @@ class CareerManagerBackground {
     });
   }
 
+  async clearStoredData(key) {
+    return new Promise((resolve) => {
+      chrome.storage.local.remove([key], resolve);
+    });
+  }
+
   // === Google Drive 폴더 관련 메소드들 ===
 
-  async listDriveFolders(params, sendResponse) {
+  async listDriveContents(params, sendResponse) {
     try {
       const authData = await this.getStoredData('drive_auth');
       if (!authData || !authData.access_token) {
@@ -1076,13 +1114,13 @@ class CareerManagerBackground {
       }
 
       const parentId = params.parentId || 'root';
-      const query = `mimeType = 'application/vnd.google-apps.folder' and '${parentId}' in parents and trashed = false`;
+      const query = `'${parentId}' in parents and trashed = false`;
       
       const url = `https://www.googleapis.com/drive/v3/files?` +
         new URLSearchParams({
           q: query,
-          fields: 'files(id, name, parents, createdTime, modifiedTime)',
-          orderBy: 'name'
+          fields: 'files(id, name, parents, createdTime, modifiedTime, mimeType)',
+          orderBy: 'folder, name'
         });
 
       const response = await fetch(url, {
@@ -1101,12 +1139,12 @@ class CareerManagerBackground {
       
       sendResponse({
         success: true,
-        folders: data.files || [],
+        folders: data.files || [], // Keep the same response format for compatibility
         parentId: parentId
       });
 
     } catch (error) {
-      console.error('List folders error:', error);
+      console.error('List drive contents error:', error);
       sendResponse({
         success: false,
         error: error.message
@@ -1215,6 +1253,8 @@ class CareerManagerBackground {
 
   async moveFileToFolder(fileId, folderId, accessToken) {
     try {
+      console.log(`Moving file ${fileId} to folder ${folderId}`);
+      
       // Get current parents
       const fileResponse = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?fields=parents`, {
         headers: {
@@ -1223,11 +1263,14 @@ class CareerManagerBackground {
       });
 
       if (!fileResponse.ok) {
-        throw new Error('Failed to get file parents');
+        const errorData = await fileResponse.json();
+        throw new Error(`Failed to get file parents: ${errorData.error?.message || fileResponse.statusText}`);
       }
 
       const fileData = await fileResponse.json();
       const previousParents = fileData.parents.join(',');
+      
+      console.log(`Previous parents: ${previousParents}`);
 
       // Move file
       const moveResponse = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?addParents=${folderId}&removeParents=${previousParents}`, {
@@ -1238,9 +1281,11 @@ class CareerManagerBackground {
       });
 
       if (!moveResponse.ok) {
-        throw new Error('Failed to move file');
+        const errorData = await moveResponse.json();
+        throw new Error(`Failed to move file: ${errorData.error?.message || moveResponse.statusText}`);
       }
 
+      console.log(`File moved successfully to folder ${folderId}`);
       return { success: true };
 
     } catch (error) {
@@ -1273,7 +1318,16 @@ class CareerManagerBackground {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(`스프레드시트 목록 조회 실패: ${errorData.error?.message || response.statusText}`);
+        const errorMessage = errorData.error?.message || response.statusText;
+        
+        // If insufficient authentication scopes, trigger re-authentication
+        if (errorMessage.includes('insufficient authentication scopes')) {
+          console.log('Insufficient scopes detected, clearing stored auth data to trigger re-authentication');
+          await this.clearStoredData('google_auth');
+          throw new Error('권한이 부족합니다. Google 서비스를 다시 연결해주세요.');
+        }
+        
+        throw new Error(`스프레드시트 목록 조회 실패: ${errorMessage}`);
       }
 
       const data = await response.json();
@@ -1351,6 +1405,81 @@ class CareerManagerBackground {
 
     } catch (error) {
       console.error('Error adding sheet tab:', error);
+      sendResponse({
+        success: false,
+        error: error.message
+      });
+    }
+  }
+
+  async getAccessToken(sendResponse) {
+    try {
+      // Try to get existing stored token first
+      const authData = await this.getStoredData('drive_auth');
+      if (authData && authData.access_token) {
+        // Check if token is still valid (simple check)
+        const testResponse = await fetch('https://www.googleapis.com/drive/v3/about?fields=user', {
+          headers: {
+            'Authorization': `Bearer ${authData.access_token}`
+          }
+        });
+
+        if (testResponse.ok) {
+          sendResponse({
+            success: true,
+            token: authData.access_token
+          });
+          return;
+        }
+      }
+
+      // Get new token if existing one doesn't work
+      const token = await this.getAuthToken([
+        'https://www.googleapis.com/auth/drive.file',
+        'https://www.googleapis.com/auth/drive.readonly'
+      ]);
+
+      if (token) {
+        await this.storeAuthToken('drive_auth', token);
+        sendResponse({
+          success: true,
+          token: token
+        });
+      } else {
+        throw new Error('Failed to get access token');
+      }
+
+    } catch (error) {
+      console.error('Get access token error:', error);
+      sendResponse({
+        success: false,
+        error: error.message
+      });
+    }
+  }
+
+  async handleFolderSelected(folder, sendResponse) {
+    try {
+      // Store the selected folder information
+      const currentSettings = await this.getSettings();
+      const updatedSettings = {
+        ...currentSettings,
+        driveSettings: {
+          ...currentSettings.driveSettings,
+          selectedFolderId: folder.id,
+          selectedFolderName: folder.name
+        }
+      };
+
+      await this.updateSettings(updatedSettings);
+
+      sendResponse({
+        success: true,
+        folder: folder
+      });
+
+    } catch (error) {
+      console.error('Handle folder selected error:', error);
       sendResponse({
         success: false,
         error: error.message

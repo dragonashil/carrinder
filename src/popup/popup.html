@@ -62,20 +62,25 @@
               </div>
               
               <div id="month-selector" class="date-selector" style="display: none;">
-                <select id="month-select" class="select-input">
-                  <option value="2024-01">2024년 1월</option>
-                  <option value="2024-02">2024년 2월</option>
-                  <option value="2024-03">2024년 3월</option>
-                  <option value="2024-04">2024년 4월</option>
-                  <option value="2024-05">2024년 5월</option>
-                  <option value="2024-06">2024년 6월</option>
-                  <option value="2024-07">2024년 7월</option>
-                  <option value="2024-08">2024년 8월</option>
-                  <option value="2024-09">2024년 9월</option>
-                  <option value="2024-10">2024년 10월</option>
-                  <option value="2024-11">2024년 11월</option>
-                  <option value="2024-12">2024년 12월</option>
-                </select>
+                <div class="month-range-selector">
+                  <div class="month-input-group">
+                    <label class="date-label">시작 월</label>
+                    <select id="start-month-select" class="select-input">
+                      <!-- Options will be populated dynamically -->
+                    </select>
+                  </div>
+                  <span class="date-separator">~</span>
+                  <div class="month-input-group">
+                    <label class="date-label">종료 월</label>
+                    <select id="end-month-select" class="select-input">
+                      <!-- Options will be populated dynamically -->
+                    </select>
+                  </div>
+                </div>
+                <div class="period-warning" id="period-warning" style="display: none;">
+                  <span class="warning-icon">⚠️</span>
+                  <span class="warning-text">최대 1년까지 선택 가능합니다</span>
+                </div>
               </div>
               
               <div id="custom-selector" class="date-selector custom-range" style="display: none;">

@@ -241,12 +241,16 @@ class CareerManagerPopup {
       if (googleAuth && googleAuth.access_token) {
         googleStatus.textContent = 'Connected';
         googleStatus.classList.add('connected');
-        googleBtn.textContent = 'Disconnect';
+        googleBtn.textContent = 'Connected';
+        googleBtn.classList.add('connected');
+        googleBtn.classList.remove('disconnected');
         this.isAuthenticated = true;
       } else {
         googleStatus.textContent = 'Not connected';
         googleStatus.classList.remove('connected');
         googleBtn.textContent = 'Connect';
+        googleBtn.classList.add('disconnected');
+        googleBtn.classList.remove('connected');
         this.isAuthenticated = false;
       }
 
@@ -258,11 +262,15 @@ class CareerManagerPopup {
       if (driveAuth && driveAuth.access_token) {
         driveStatus.textContent = 'Connected';
         driveStatus.classList.add('connected');
-        driveBtn.textContent = 'Disconnect';
+        driveBtn.textContent = 'Connected';
+        driveBtn.classList.add('connected');
+        driveBtn.classList.remove('disconnected');
       } else {
         driveStatus.textContent = 'Not connected';
         driveStatus.classList.remove('connected');
         driveBtn.textContent = 'Connect';
+        driveBtn.classList.add('disconnected');
+        driveBtn.classList.remove('connected');
       }
     } catch (error) {
       console.error('Error checking auth status:', error);
@@ -281,6 +289,13 @@ class CareerManagerPopup {
     try {
       const btn = document.getElementById('google-auth-btn');
       const originalText = btn.textContent;
+      
+      // If already connected, disconnect instead
+      if (btn.classList.contains('connected')) {
+        await this.disconnectGoogle();
+        return;
+      }
+      
       btn.textContent = 'Connecting...';
       btn.disabled = true;
 
@@ -313,6 +328,13 @@ class CareerManagerPopup {
     try {
       const btn = document.getElementById('drive-auth-btn');
       const originalText = btn.textContent;
+      
+      // If already connected, disconnect instead
+      if (btn.classList.contains('connected')) {
+        await this.disconnectDrive();
+        return;
+      }
+      
       btn.textContent = 'Connecting...';
       btn.disabled = true;
 
@@ -336,6 +358,46 @@ class CareerManagerPopup {
     } catch (error) {
       console.error('Error during Drive authentication:', error);
       this.showError('Authentication error occurred.');
+    }
+  }
+
+  async disconnectGoogle() {
+    try {
+      const btn = document.getElementById('google-auth-btn');
+      btn.textContent = 'Disconnecting...';
+      btn.disabled = true;
+
+      // Clear Google auth data from storage
+      chrome.storage.local.remove(['google_auth'], async () => {
+        // Update UI
+        await this.checkAuthStatus();
+        this.events = [];
+        this.updateUI();
+        this.showToast('Google Calendar disconnected successfully.', 'success');
+      });
+
+    } catch (error) {
+      console.error('Error during Google disconnection:', error);
+      this.showError('Disconnection error occurred.');
+    }
+  }
+
+  async disconnectDrive() {
+    try {
+      const btn = document.getElementById('drive-auth-btn');
+      btn.textContent = 'Disconnecting...';
+      btn.disabled = true;
+
+      // Clear Drive auth data from storage
+      chrome.storage.local.remove(['drive_auth'], async () => {
+        // Update UI
+        await this.checkAuthStatus();
+        this.showToast('Google Drive disconnected successfully.', 'success');
+      });
+
+    } catch (error) {
+      console.error('Error during Drive disconnection:', error);
+      this.showError('Drive disconnection error occurred.');
     }
   }
 
@@ -611,23 +673,94 @@ class CareerManagerPopup {
   }
 
   populateMonthOptions() {
-    const monthSelect = document.getElementById('month-select');
+    const startMonthSelect = document.getElementById('start-month-select');
+    const endMonthSelect = document.getElementById('end-month-select');
     const currentDate = new Date();
     const currentYear = currentDate.getFullYear();
     const currentMonth = currentDate.getMonth();
     
-    monthSelect.innerHTML = '';
+    // Clear existing options
+    startMonthSelect.innerHTML = '';
+    endMonthSelect.innerHTML = '';
     
-    // Last 12 months
-    for (let i = 0; i < 12; i++) {
+    // Generate months for last 3 years
+    const months = [];
+    for (let i = 0; i < 36; i++) {
       const date = new Date(currentYear, currentMonth - i, 1);
       const year = date.getFullYear();
       const month = date.getMonth() + 1;
       
-      const option = document.createElement('option');
-      option.value = `${year}-${month.toString().padStart(2, '0')}`;
-      option.textContent = `${year}년 ${month}월`;
-      monthSelect.appendChild(option);
+      months.push({
+        value: `${year}-${month.toString().padStart(2, '0')}`,
+        text: `${year}년 ${month}월`,
+        date: date
+      });
+    }
+    
+    // Populate both selects
+    months.forEach((monthData, index) => {
+      const startOption = document.createElement('option');
+      startOption.value = monthData.value;
+      startOption.textContent = monthData.text;
+      startMonthSelect.appendChild(startOption);
+      
+      const endOption = document.createElement('option');
+      endOption.value = monthData.value;
+      endOption.textContent = monthData.text;
+      endMonthSelect.appendChild(endOption);
+    });
+    
+    // Set default values (current month and 11 months ago)
+    endMonthSelect.value = months[0].value;
+    startMonthSelect.value = months[11].value;
+    
+    // Add change listeners for validation
+    startMonthSelect.addEventListener('change', () => {
+      this.validateMonthRange();
+      this.updateFilenamePreview();
+    });
+    endMonthSelect.addEventListener('change', () => {
+      this.validateMonthRange();
+      this.updateFilenamePreview();
+    });
+  }
+  
+  validateMonthRange() {
+    const startMonthSelect = document.getElementById('start-month-select');
+    const endMonthSelect = document.getElementById('end-month-select');
+    const warningElement = document.getElementById('period-warning');
+    
+    const startValue = startMonthSelect.value;
+    const endValue = endMonthSelect.value;
+    
+    const [startYear, startMonth] = startValue.split('-').map(Number);
+    const [endYear, endMonth] = endValue.split('-').map(Number);
+    
+    const startDate = new Date(startYear, startMonth - 1);
+    const endDate = new Date(endYear, endMonth - 1);
+    
+    // Check if start date is after end date
+    if (startDate > endDate) {
+      // Swap values
+      startMonthSelect.value = endValue;
+      endMonthSelect.value = startValue;
+      this.validateMonthRange();
+      return;
+    }
+    
+    // Calculate month difference
+    const monthDiff = (endYear - startYear) * 12 + (endMonth - startMonth) + 1;
+    
+    // Show warning if more than 12 months
+    if (monthDiff > 12) {
+      warningElement.style.display = 'flex';
+      // Adjust end date to be exactly 11 months after start date
+      const adjustedEndDate = new Date(startYear, startMonth + 10);
+      const adjustedYear = adjustedEndDate.getFullYear();
+      const adjustedMonth = adjustedEndDate.getMonth() + 1;
+      endMonthSelect.value = `${adjustedYear}-${adjustedMonth.toString().padStart(2, '0')}`;
+    } else {
+      warningElement.style.display = 'none';
     }
   }
 
@@ -643,6 +776,7 @@ class CareerManagerPopup {
     try {
       // Check if Drive is authenticated
       const driveAuth = await this.getStoredAuth('drive_auth');
+      
       if (!driveAuth || !driveAuth.access_token) {
         this.showError('구글 드라이브 인증이 필요합니다.');
         return;
@@ -651,10 +785,21 @@ class CareerManagerPopup {
       // Load current settings
       await this.loadDriveSettings();
       
-      // Show folder selection modal
-      this.showFolderModal();
+      // Ask user which method they prefer
+      const useGooglePicker = confirm('Google Picker를 사용하시겠습니까?\n\n' +
+        '확인: Google Picker 사용 (권장)\n' +
+        '취소: 내장 폴더 선택기 사용');
+      
+      if (useGooglePicker) {
+        // Open Google Picker in new tab
+        this.openGooglePickerTab();
+      } else {
+        // Show our custom folder selection modal
+        this.showFolderModal();
+      }
       
     } catch (error) {
+      console.error('Error in selectDriveFolder:', error);
       this.showError('폴더 선택 중 오류 발생: ' + error.message);
     }
   }
@@ -690,6 +835,53 @@ class CareerManagerPopup {
     const selectedFolder = document.getElementById('selected-folder');
     const folderName = this.driveSettings.selectedFolderName || '루트 폴더';
     selectedFolder.innerHTML = `<span class="folder-path">${folderName}</span>`;
+  }
+  
+  openGooglePickerTab() {
+    // Get the extension URL for the picker page
+    const pickerUrl = chrome.runtime.getURL('picker.html');
+    
+    // Create a modal window instead of a new tab
+    chrome.windows.create({
+      url: pickerUrl,
+      type: 'popup',
+      width: 800,
+      height: 600,
+      left: Math.round((screen.width - 800) / 2),
+      top: Math.round((screen.height - 600) / 2)
+    }, (window) => {
+      // Listen for messages from the picker window
+      this.setupPickerMessageListener();
+      this.showToast('Google Drive 폴더 선택기가 열렸습니다.', 'info');
+    });
+  }
+  
+  setupPickerMessageListener() {
+    // Add message listener for folder selection
+    const messageListener = (message, sender, sendResponse) => {
+      if (message.action === 'folderSelected' && message.folder) {
+        this.handleFolderSelection(message.folder);
+        // Remove the listener after receiving the message
+        chrome.runtime.onMessage.removeListener(messageListener);
+      }
+    };
+    
+    chrome.runtime.onMessage.addListener(messageListener);
+  }
+  
+  async handleFolderSelection(folder) {
+    try {
+      // Save the selected folder
+      this.driveSettings.selectedFolderId = folder.id;
+      this.driveSettings.selectedFolderName = folder.name;
+      
+      await this.saveDriveSettings();
+      this.updateFolderDisplay();
+      this.showToast(`폴더 "${folder.name}"이 선택되었습니다.`, 'success');
+    } catch (error) {
+      console.error('Error handling folder selection:', error);
+      this.showError('폴더 선택 처리 중 오류가 발생했습니다.');
+    }
   }
 
   updateFilenameSettings() {
@@ -766,8 +958,20 @@ class CareerManagerPopup {
           period = new Date().getFullYear().toString();
           break;
         case 'month':
-          const now = new Date();
-          period = `${now.getFullYear()}년${(now.getMonth() + 1).toString().padStart(2, '0')}월`;
+          const startMonthSelect = document.getElementById('start-month-select');
+          const endMonthSelect = document.getElementById('end-month-select');
+          if (startMonthSelect && endMonthSelect && startMonthSelect.value && endMonthSelect.value) {
+            const [startY, startM] = startMonthSelect.value.split('-');
+            const [endY, endM] = endMonthSelect.value.split('-');
+            if (startMonthSelect.value === endMonthSelect.value) {
+              period = `${startY}년${startM}월`;
+            } else {
+              period = `${startY}년${startM}월_${endY}년${endM}월`;
+            }
+          } else {
+            const now = new Date();
+            period = `${now.getFullYear()}년${(now.getMonth() + 1).toString().padStart(2, '0')}월`;
+          }
           break;
         case 'custom':
           period = '2025_01_01_2025_12_31';
@@ -825,12 +1029,14 @@ class CareerManagerPopup {
         };
         break;
       case 'month':
-        const monthValue = document.getElementById('month-select').value;
-        const [y, m] = monthValue.split('-');
-        const lastDay = new Date(parseInt(y), parseInt(m), 0).getDate();
+        const startMonthValue = document.getElementById('start-month-select').value;
+        const endMonthValue = document.getElementById('end-month-select').value;
+        const [startY, startM] = startMonthValue.split('-');
+        const [endY, endM] = endMonthValue.split('-');
+        const lastDay = new Date(parseInt(endY), parseInt(endM), 0).getDate();
         dateRange = {
-          start: `${y}-${m}-01T00:00:00Z`,
-          end: `${y}-${m}-${lastDay}T23:59:59Z`
+          start: `${startY}-${startM}-01T00:00:00Z`,
+          end: `${endY}-${endM}-${lastDay}T23:59:59Z`
         };
         break;
       case 'custom':
@@ -1429,9 +1635,15 @@ class CareerManagerPopup {
   async showFolderModal() {
     const modal = document.getElementById('folder-modal');
     
-    // Reset modal state
-    this.currentFolderId = this.driveSettings.selectedFolderId || 'root';
-    this.selectedFolderId = this.currentFolderId;
+    if (!modal) {
+      console.error('Folder modal element not found!');
+      this.showError('폴더 선택 모달을 찾을 수 없습니다.');
+      return;
+    }
+    
+    // Reset modal state - always start from root to show all folders
+    this.currentFolderId = 'root';
+    this.selectedFolderId = this.driveSettings.selectedFolderId || 'root';
     this.folderHistory = [];
     
     // Load folder list
@@ -1442,6 +1654,7 @@ class CareerManagerPopup {
     
     // Show modal
     modal.style.display = 'flex';
+    
     setTimeout(() => {
       modal.classList.add('show');
     }, 10);
@@ -1516,23 +1729,43 @@ class CareerManagerPopup {
     }
   }
 
-  renderFolderList(folders) {
+  getFileIcon(mimeType) {
+    if (mimeType.includes('spreadsheet') || mimeType.includes('sheet')) return '📊';
+    if (mimeType.includes('document') || mimeType.includes('text')) return '📄';
+    if (mimeType.includes('presentation')) return '📑';
+    if (mimeType.includes('image')) return '🖼️';
+    if (mimeType.includes('video')) return '🎥';
+    if (mimeType.includes('audio')) return '🎵';
+    if (mimeType.includes('pdf')) return '📋';
+    return '📄';
+  }
+
+  renderFolderList(items) {
     const folderList = document.getElementById('folder-list');
     
-    if (folders.length === 0) {
+    if (items.length === 0) {
       folderList.innerHTML = '<div class="empty-folder">이 폴더는 비어있습니다.</div>';
       return;
     }
     
-    folderList.innerHTML = folders.map(folder => `
-      <div class="folder-item" data-folder-id="${folder.id}" data-folder-name="${folder.name}">
-        <div class="folder-icon">📁</div>
-        <div class="folder-info">
-          <div class="folder-name">${folder.name}</div>
-          <div class="folder-meta">폴더 • ${folder.modifiedTime ? new Date(folder.modifiedTime).toLocaleDateString() : ''}</div>
+    folderList.innerHTML = items.map(item => {
+      const isFolder = item.mimeType === 'application/vnd.google-apps.folder';
+      const icon = isFolder ? '📁' : this.getFileIcon(item.mimeType);
+      const itemType = isFolder ? '폴더' : '파일';
+      
+      return `
+        <div class="folder-item ${isFolder ? 'is-folder' : 'is-file'}" 
+             data-folder-id="${item.id}" 
+             data-folder-name="${item.name}"
+             data-is-folder="${isFolder}">
+          <div class="folder-icon">${icon}</div>
+          <div class="folder-info">
+            <div class="folder-name">${item.name}</div>
+            <div class="folder-meta">${itemType} • ${item.modifiedTime ? new Date(item.modifiedTime).toLocaleDateString() : ''}</div>
+          </div>
         </div>
-      </div>
-    `).join('');
+      `;
+    }).join('');
     
     // Add click handlers
     folderList.querySelectorAll('.folder-item').forEach(item => {
@@ -1540,9 +1773,12 @@ class CareerManagerPopup {
         this.selectFolder(item);
       });
       
-      item.addEventListener('dblclick', () => {
-        this.navigateToFolder(item.dataset.folderId, item.dataset.folderName);
-      });
+      // Only add double-click for folders
+      if (item.dataset.isFolder === 'true') {
+        item.addEventListener('dblclick', () => {
+          this.navigateToFolder(item.dataset.folderId, item.dataset.folderName);
+        });
+      }
     });
   }
 
@@ -1560,18 +1796,53 @@ class CareerManagerPopup {
   }
 
   async navigateToFolder(folderId, folderName) {
-    // Add current folder to history
+    console.log('Navigating to folder:', folderId, folderName);
+    
+    // Add current folder to history before navigating if not root
+    if (this.currentFolderId === 'root') {
+      // Start fresh history when navigating from root
+      this.folderHistory = [{
+        id: 'root',
+        name: '루트 폴더'
+      }];
+    } else {
+      // Add current folder to history if not already there
+      const currentName = this.getCurrentFolderName() || this.getFolderNameFromId(this.currentFolderId);
+      const lastHistoryItem = this.folderHistory[this.folderHistory.length - 1];
+      
+      if (!lastHistoryItem || lastHistoryItem.id !== this.currentFolderId) {
+        this.folderHistory.push({
+          id: this.currentFolderId,
+          name: currentName
+        });
+      }
+    }
+    
+    // Add the new folder to history
     this.folderHistory.push({
-      id: this.currentFolderId,
-      name: this.getCurrentFolderName()
+      id: folderId,
+      name: folderName
     });
     
     // Navigate to new folder
     this.currentFolderId = folderId;
     this.selectedFolderId = folderId;
     
+    console.log('Folder history after navigation:', this.folderHistory);
+    
     // Reload folder list
     await this.loadFolderList();
+  }
+  
+  getFolderNameFromId(folderId) {
+    // Try to get folder name from current folder list
+    const folderItems = document.querySelectorAll('.folder-item');
+    for (const item of folderItems) {
+      if (item.dataset.folderId === folderId) {
+        return item.dataset.folderName;
+      }
+    }
+    return '알 수 없는 폴더';
   }
 
   getCurrentFolderName() {
@@ -1584,20 +1855,42 @@ class CareerManagerPopup {
     const breadcrumb = document.getElementById('folder-breadcrumb');
     
     // Build breadcrumb from history
-    let breadcrumbHTML = '<span class="breadcrumb-item" data-folder-id="root">루트 폴더</span>';
+    let breadcrumbHTML = '';
     
-    for (const folder of this.folderHistory) {
-      breadcrumbHTML += `<span class="breadcrumb-item" data-folder-id="${folder.id}">${folder.name}</span>`;
+    // Show all folders in history
+    for (let i = 0; i < this.folderHistory.length; i++) {
+      const folder = this.folderHistory[i];
+      const isLast = i === this.folderHistory.length - 1;
+      const isCurrent = folder.id === this.currentFolderId;
+      
+      if (i > 0) {
+        breadcrumbHTML += ' > ';
+      }
+      
+      const className = isCurrent && isLast ? 'breadcrumb-item current' : 'breadcrumb-item';
+      breadcrumbHTML += `<span class="${className}" data-folder-id="${folder.id}">${folder.name}</span>`;
+    }
+    
+    // If no history exists, show root
+    if (this.folderHistory.length === 0) {
+      const className = this.currentFolderId === 'root' ? 'breadcrumb-item current' : 'breadcrumb-item';
+      breadcrumbHTML = `<span class="${className}" data-folder-id="root">루트 폴더</span>`;
     }
     
     breadcrumb.innerHTML = breadcrumbHTML;
     
-    // Add click handlers for breadcrumb navigation
-    breadcrumb.querySelectorAll('.breadcrumb-item').forEach(item => {
+    // Add click handlers for breadcrumb navigation (except current folder)
+    breadcrumb.querySelectorAll('.breadcrumb-item:not(.current)').forEach(item => {
       item.addEventListener('click', () => {
         this.navigateToBreadcrumb(item.dataset.folderId);
       });
     });
+  }
+  
+  getCurrentFolderNameFromHistory() {
+    // Find current folder name in history
+    const currentFolder = this.folderHistory.find(f => f.id === this.currentFolderId);
+    return currentFolder ? currentFolder.name : null;
   }
 
   async navigateToBreadcrumb(folderId) {
