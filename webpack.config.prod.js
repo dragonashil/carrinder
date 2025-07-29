@@ -15,7 +15,8 @@ module.exports = {
     content: './src/content/content.js',
     options: './src/options/options.js',
     pricing: './src/pricing/pricing.js',
-    auth: './src/auth/auth.js'
+    auth: './src/auth/auth.js',
+    home: './src/home/home.js'
   },
   output: {
     path: path.resolve(__dirname, 'build/dist'),
@@ -66,6 +67,8 @@ module.exports = {
         { from: 'src/pricing/pricing.css', to: 'pricing.css' },
         { from: 'src/auth/auth.html', to: 'auth.html' },
         { from: 'src/auth/auth.css', to: 'auth.css' },
+        { from: 'src/home/home.html', to: 'home.html' },
+        { from: 'src/home/home.css', to: 'home.css' },
         { from: 'src/content/content.css', to: 'content.css' },
         { from: 'src/assets', to: 'assets' }
       ]

@@ -3,6 +3,7 @@ class CareerManagerPopup {
   constructor() {
     this.isAuthenticated = false;
     this.events = [];
+    this.eventListenersSetup = false;
     this.init();
   }
 
@@ -26,7 +27,9 @@ class CareerManagerPopup {
     // Check if opened in new window
     this.checkWindowMode();
     
-    this.setupEventListeners();
+    // Setup basic event listeners (non-dashboard)
+    this.setupBasicEventListeners();
+    
     await this.checkAuthStatus();
     await this.loadEvents();
     await this.loadSpreadsheetSummary();
@@ -53,19 +56,43 @@ class CareerManagerPopup {
     }
   }
 
-  setupEventListeners() {
+  setupBasicEventListeners() {
+    console.log('Setting up basic event listeners...');
+    
     // Authentication buttons
-    document.getElementById('google-auth-btn').addEventListener('click', () => {
-      this.authenticateGoogle();
-    });
+    const googleAuthBtn = document.getElementById('google-auth-btn');
+    if (googleAuthBtn) {
+      googleAuthBtn.addEventListener('click', () => {
+        this.authenticateGoogle();
+      });
+    }
 
-    document.getElementById('drive-auth-btn').addEventListener('click', () => {
-      this.authenticateDrive();
-    });
+    const driveAuthBtn = document.getElementById('drive-auth-btn');
+    if (driveAuthBtn) {
+      driveAuthBtn.addEventListener('click', (e) => {
+        // Prevent manual Drive connection - it's auto-connected
+        e.preventDefault();
+        if (!this.isAuthenticated) {
+          this.showToast('먼저 Google로 시작하기를 클릭해주세요.', 'info');
+        }
+      });
+    }
 
-    // Data collection configuration
-    this.setupCollectionEventListeners();
+    // Next to dashboard button
+    const nextToDashboardBtn = document.getElementById('next-to-dashboard-btn');
+    if (nextToDashboardBtn) {
+      nextToDashboardBtn.addEventListener('click', () => {
+        this.navigateToDashboard();
+      });
+    }
 
+    // Basic action buttons
+    this.setupBasicActionButtons();
+    
+    console.log('Basic event listeners setup complete');
+  }
+
+  setupBasicActionButtons() {
     // Action buttons (legacy - keeping for compatibility)
     const syncBtn = document.getElementById('sync-btn');
     if (syncBtn) {
@@ -115,34 +142,57 @@ class CareerManagerPopup {
         this.openInNewWindow();
       });
     }
+
+    const homeBtn = document.getElementById('home-btn');
+    if (homeBtn) {
+      homeBtn.addEventListener('click', () => {
+        this.openHomePage();
+      });
+    }
   }
 
   setupCollectionEventListeners() {
+    if (this.eventListenersSetup) {
+      console.log('Event listeners already setup, skipping...');
+      return;
+    }
+    
+    console.log('Setting up collection event listeners...');
+    
     // Period type selection
     const periodType = document.getElementById('period-type');
+    console.log('Period type element in setup:', periodType);
     if (periodType) {
       periodType.addEventListener('change', (e) => {
+        console.log('Period type changed to:', e.target.value);
         this.handlePeriodTypeChange(e.target.value);
       });
       
       // Initialize with default period type (year)
       this.handlePeriodTypeChange(periodType.value || 'year');
+      console.log('Period type event listener added');
     }
 
     // Data collection button
     const collectBtn = document.getElementById('collect-data-btn');
+    console.log('Collect button element in setup:', collectBtn);
     if (collectBtn) {
       collectBtn.addEventListener('click', () => {
+        console.log('Collect button clicked');
         this.startDataCollection();
       });
+      console.log('Collect button event listener added');
     }
 
     // Folder selection button
     const folderBtn = document.getElementById('select-folder-btn');
+    console.log('Folder button element in setup:', folderBtn);
     if (folderBtn) {
       folderBtn.addEventListener('click', () => {
+        console.log('Folder button clicked');
         this.selectDriveFolder();
       });
+      console.log('Folder button event listener added');
     }
 
     // New collection button
@@ -169,13 +219,21 @@ class CareerManagerPopup {
     
     // Spreadsheet selection listeners
     this.setupSpreadsheetListeners();
+    
+    // Mark event listeners as setup
+    this.eventListenersSetup = true;
+    console.log('Collection event listeners setup complete');
   }
 
   setupFilenameListeners() {
+    console.log('Setting up filename listeners...');
+    
     // Radio button change
     const filenameRadios = document.querySelectorAll('input[name="filename-type"]');
+    console.log('Filename radios found:', filenameRadios.length);
     filenameRadios.forEach(radio => {
       radio.addEventListener('change', (e) => {
+        console.log('Filename type changed to:', e.target.value);
         this.handleFilenameTypeChange(e.target.value);
         this.saveFilenameSettings();
       });
@@ -207,6 +265,8 @@ class CareerManagerPopup {
     const customRadio = document.querySelector('input[name="filename-type"][value="custom"]');
     const templateSelect = document.getElementById('filename-template');
     const customInput = document.getElementById('custom-filename');
+
+    if (!customRadio || !templateSelect || !customInput) return;
 
     if (customRadio.checked) {
       this.driveSettings.customFilename = customInput.value.trim();
@@ -268,22 +328,29 @@ class CareerManagerPopup {
 
   async checkAuthStatus() {
     try {
+      // Check if user is registered
+      const carrinderUser = await this.getStoredData('carrinderUser');
+      
       // Check Google Calendar authentication
       const googleAuth = await this.getStoredAuth('google_auth');
       const googleStatus = document.getElementById('google-auth-status');
       const googleBtn = document.getElementById('google-auth-btn');
 
       if (googleAuth && googleAuth.access_token) {
-        googleStatus.textContent = 'Connected';
+        if (carrinderUser) {
+          googleStatus.textContent = `환영합니다, ${carrinderUser.name}님!`;
+        } else {
+          googleStatus.textContent = 'Connected';
+        }
         googleStatus.classList.add('connected');
         googleBtn.textContent = 'Connected';
         googleBtn.classList.add('connected');
         googleBtn.classList.remove('disconnected');
         this.isAuthenticated = true;
       } else {
-        googleStatus.textContent = 'Not connected';
+        googleStatus.textContent = '회원가입하고 시작하기';
         googleStatus.classList.remove('connected');
-        googleBtn.textContent = 'Connect';
+        googleBtn.textContent = 'Google로 시작하기';
         googleBtn.classList.add('disconnected');
         googleBtn.classList.remove('connected');
         this.isAuthenticated = false;
@@ -301,11 +368,16 @@ class CareerManagerPopup {
         driveBtn.classList.add('connected');
         driveBtn.classList.remove('disconnected');
       } else {
-        driveStatus.textContent = 'Not connected';
+        if (this.isAuthenticated) {
+          driveStatus.textContent = '연결 준비 중...';
+        } else {
+          driveStatus.textContent = '자동으로 연결됩니다';
+        }
         driveStatus.classList.remove('connected');
-        driveBtn.textContent = 'Connect';
+        driveBtn.textContent = '자동 연결';
         driveBtn.classList.add('disconnected');
         driveBtn.classList.remove('connected');
+        driveBtn.disabled = true;
       }
     } catch (error) {
       console.error('Error checking auth status:', error);
@@ -346,9 +418,6 @@ class CareerManagerPopup {
           
           await this.checkAuthStatus();
           this.loadEvents();
-          
-          // Check if both services are now connected
-          await this.checkAndShowSuccessModal();
         } else {
           console.error('Authentication failed:', response.error);
           this.showError('Google authentication failed. Please try again.');
@@ -384,9 +453,6 @@ class CareerManagerPopup {
       }, async (response) => {
         if (response.success) {
           await this.checkAuthStatus();
-          
-          // Check if both services are now connected
-          await this.checkAndShowSuccessModal();
         } else {
           console.error('Drive authentication failed:', response.error);
           this.showError('Google Drive authentication failed. Please try again.');
@@ -478,6 +544,9 @@ class CareerManagerPopup {
       dashboard.style.display = 'block';
       statusIndicator.classList.add('connected');
       statusText.textContent = 'Connected';
+      
+      // Initialize dashboard functionality
+      this.initializeDashboard();
     } else {
       authSection.style.display = 'block';
       dashboard.style.display = 'none';
@@ -671,12 +740,65 @@ class CareerManagerPopup {
     });
   }
 
+  async logout() {
+    try {
+      // Send logout message to background
+      const response = await this.sendMessageToBackground({
+        action: 'logout'
+      });
+
+      if (response.success) {
+        // Reset UI state
+        this.isAuthenticated = false;
+        this.events = [];
+        
+        // Clear local settings
+        this.driveSettings = {
+          selectedFolderId: 'root',
+          selectedFolderName: '루트 폴더',
+          filenameTemplate: '{role}_{period}',
+          customFilename: ''
+        };
+        
+        this.spreadsheetSettings = {
+          type: 'new',
+          selectedSpreadsheetId: null,
+          selectedSpreadsheetName: null
+        };
+        
+        // Update UI to show auth section
+        this.updateUI();
+        
+        this.showToast('로그아웃되었습니다.', 'success');
+        
+        // Close current window if it's a popup
+        if (window.opener) {
+          window.close();
+        }
+      } else {
+        this.showError('로그아웃 중 오류가 발생했습니다: ' + response.error);
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+      this.showError('로그아웃 중 오류가 발생했습니다.');
+    }
+  }
+
   async handleInitialGoogleAuth(googleAuthResponse) {
     try {
+      // Show connection status section
+      this.showConnectionStatus();
+
       // Check if user already exists
       const existingUser = await this.getStoredData('carrinderUser');
       if (existingUser) {
         console.log('User already registered:', existingUser);
+        this.updateStatus('calendar', 'connected', '이미 연결됨');
+        this.updateStatus('drive', 'connected', '이미 연결됨');
+        this.updateStatus('registration', 'connected', '기존 계정');
+        setTimeout(() => {
+          this.showCompletionMessage();
+        }, 500);
         return;
       }
 
@@ -687,17 +809,151 @@ class CareerManagerPopup {
         picture: googleAuthResponse.picture || ''
       };
 
-      // Auto-connect Google Drive
-      await this.autoConnectDrive();
+      // Step 1: Update Calendar status
+      this.updateStatus('calendar', 'connected', '연결 완료');
 
-      // Register user with Basic plan
+      // Step 2: Register user with Basic plan
+      this.updateStatus('registration', 'loading', '계정 생성 중...');
       await this.registerBasicUser(userInfo);
+      this.updateStatus('registration', 'connected', '가입 완료');
 
-      this.showToast('Carrinder Basic 플랜으로 자동 가입되었습니다!', 'success');
+      // Step 3: Auto-connect Google Drive
+      this.updateStatus('drive', 'loading', '연결 중...');
+      await this.autoConnectDrive();
+      this.updateStatus('drive', 'connected', '연결 완료');
+
+      // Step 4: Show completion message (no auto-navigation)
+      setTimeout(() => {
+        this.showCompletionMessage();
+      }, 500);
       
     } catch (error) {
       console.error('Error in initial Google auth:', error);
-      this.showToast('자동 설정 중 오류가 발생했습니다.', 'error');
+      this.updateStatus('registration', 'error', '설정 중 오류 발생');
+      this.updateStatus('drive', 'error', '연결 실패');
+    }
+  }
+
+  showConnectionStatus() {
+    const connectionStatus = document.getElementById('connection-status');
+    if (connectionStatus) {
+      connectionStatus.style.display = 'block';
+    }
+  }
+
+  updateStatus(service, status, message) {
+    const statusIcon = document.getElementById(`${service}-status-icon`);
+    const statusText = document.getElementById(`${service === 'calendar' ? 'google-auth' : service === 'drive' ? 'drive-auth' : 'registration'}-status`);
+    
+    if (statusIcon && statusText) {
+      // Update icon based on status
+      switch (status) {
+        case 'loading':
+          statusIcon.textContent = '⏳';
+          break;
+        case 'connected':
+          statusIcon.textContent = '✅';
+          break;
+        case 'error':
+          statusIcon.textContent = '❌';
+          break;
+        default:
+          statusIcon.textContent = '⏳';
+      }
+      
+      // Update text
+      statusText.textContent = message;
+    }
+  }
+
+  showCompletionMessage() {
+    const completionMessage = document.getElementById('completion-message');
+    if (completionMessage) {
+      completionMessage.style.display = 'block';
+    }
+  }
+
+  navigateToDashboard() {
+    const authSection = document.getElementById('auth-section');
+    const dashboard = document.getElementById('dashboard');
+    
+    if (authSection && dashboard) {
+      authSection.style.display = 'none';
+      dashboard.style.display = 'block';
+      
+      // Update sync status
+      const statusIndicator = document.getElementById('status-indicator');
+      const statusText = document.getElementById('status-text');
+      
+      if (statusIndicator && statusText) {
+        statusIndicator.classList.add('connected');
+        statusText.textContent = 'Connected';
+      }
+      
+      // Initialize dashboard functionality
+      this.initializeDashboard();
+    }
+  }
+
+  async initializeDashboard() {
+    try {
+      console.log('Initializing dashboard...');
+      
+      // Load drive settings and update UI
+      await this.loadDriveSettings();
+      console.log('Drive settings loaded');
+      
+      // Initialize period selection
+      const periodType = document.getElementById('period-type');
+      console.log('Period type element:', periodType);
+      if (periodType) {
+        this.handlePeriodTypeChange(periodType.value || 'year');
+        console.log('Period type initialized to:', periodType.value || 'year');
+      }
+      
+      // Update filename preview
+      this.updateFilenamePreview();
+      console.log('Filename preview updated');
+      
+      // Update folder display
+      this.updateFolderDisplay();
+      console.log('Folder display updated');
+      
+      // Update spreadsheet display
+      this.updateSpreadsheetDisplay();
+      console.log('Spreadsheet display updated');
+      
+      // Always setup dashboard event listeners (they weren't setup during init)
+      this.setupCollectionEventListeners();
+      
+      // Verify event listeners are working
+      this.verifyEventListeners();
+      console.log('Event listeners verified');
+      
+      console.log('Dashboard initialization complete');
+      
+    } catch (error) {
+      console.error('Error initializing dashboard:', error);
+    }
+  }
+
+  verifyEventListeners() {
+    // Check if key elements have event listeners
+    const periodType = document.getElementById('period-type');
+    const collectBtn = document.getElementById('collect-data-btn');
+    const folderBtn = document.getElementById('select-folder-btn');
+    
+    console.log('Period type element exists:', !!periodType);
+    console.log('Collect button exists:', !!collectBtn);
+    console.log('Folder button exists:', !!folderBtn);
+    
+    // Test if period type change works
+    if (periodType) {
+      console.log('Period type current value:', periodType.value);
+      
+      // Check if the change event is working by testing it
+      const testEvent = new Event('change');
+      periodType.dispatchEvent(testEvent);
     }
   }
 
@@ -774,30 +1030,52 @@ class CareerManagerPopup {
     window.close();
   }
 
+  openHomePage() {
+    // Open home page in new tab
+    chrome.tabs.create({
+      url: chrome.runtime.getURL('home.html')
+    });
+    
+    // Close current popup if it's a small popup
+    if (window.outerWidth <= 850) {
+      window.close();
+    }
+  }
+
   // === 새로운 데이터 수집 기능들 ===
 
   handlePeriodTypeChange(periodType) {
     // Hide all selectors first
-    document.getElementById('year-selector').style.display = 'none';
-    document.getElementById('month-selector').style.display = 'none';
-    document.getElementById('custom-selector').style.display = 'none';
+    const yearSelector = document.getElementById('year-selector');
+    const monthSelector = document.getElementById('month-selector');
+    const customSelector = document.getElementById('custom-selector');
+    
+    if (yearSelector) yearSelector.style.display = 'none';
+    if (monthSelector) monthSelector.style.display = 'none';
+    if (customSelector) customSelector.style.display = 'none';
 
     // Show selected period selector
     switch (periodType) {
       case 'year':
-        document.getElementById('year-selector').style.display = 'block';
-        this.populateYearOptions();
-        this.addYearChangeListener();
+        if (yearSelector) {
+          yearSelector.style.display = 'block';
+          this.populateYearOptions();
+          this.addYearChangeListener();
+        }
         break;
       case 'month':
-        document.getElementById('month-selector').style.display = 'block';
-        this.populateMonthOptions();
-        this.addMonthChangeListeners();
+        if (monthSelector) {
+          monthSelector.style.display = 'block';
+          this.populateMonthOptions();
+          this.addMonthChangeListeners();
+        }
         break;
       case 'custom':
-        document.getElementById('custom-selector').style.display = 'block';
-        this.setDefaultCustomDates();
-        this.addCustomDateListeners();
+        if (customSelector) {
+          customSelector.style.display = 'block';
+          this.setDefaultCustomDates();
+          this.addCustomDateListeners();
+        }
         break;
     }
     
@@ -807,6 +1085,8 @@ class CareerManagerPopup {
 
   populateYearOptions() {
     const yearSelect = document.getElementById('year-select');
+    if (!yearSelect) return;
+    
     const currentYear = new Date().getFullYear();
     
     console.log('Populating year options, current year:', currentYear);
@@ -826,6 +1106,8 @@ class CareerManagerPopup {
 
   addYearChangeListener() {
     const yearSelect = document.getElementById('year-select');
+    if (!yearSelect) return;
+    
     // Remove existing listener if any
     yearSelect.removeEventListener('change', this.updateFilenamePreview);
     // Add new listener
@@ -865,6 +1147,9 @@ class CareerManagerPopup {
   populateMonthOptions() {
     const startMonthSelect = document.getElementById('start-month-select');
     const endMonthSelect = document.getElementById('end-month-select');
+    
+    if (!startMonthSelect || !endMonthSelect) return;
+    
     const currentDate = new Date();
     const currentYear = currentDate.getFullYear();
     const currentMonth = currentDate.getMonth();
@@ -955,11 +1240,16 @@ class CareerManagerPopup {
   }
 
   setDefaultCustomDates() {
+    const startDate = document.getElementById('start-date');
+    const endDate = document.getElementById('end-date');
+    
+    if (!startDate || !endDate) return;
+    
     const today = new Date();
     const yearAgo = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate());
     
-    document.getElementById('end-date').value = today.toISOString().split('T')[0];
-    document.getElementById('start-date').value = yearAgo.toISOString().split('T')[0];
+    endDate.value = today.toISOString().split('T')[0];
+    startDate.value = yearAgo.toISOString().split('T')[0];
   }
 
   async selectDriveFolder() {
@@ -1052,6 +1342,8 @@ class CareerManagerPopup {
     const templateSelect = document.getElementById('filename-template');
     const customInput = document.getElementById('custom-filename');
     
+    if (!templateSelect || !customInput) return;
+    
     if (type === 'custom') {
       templateSelect.disabled = true;
       customInput.disabled = false;
@@ -1068,14 +1360,16 @@ class CareerManagerPopup {
     const previewElement = document.getElementById('filename-preview');
     const customRadio = document.querySelector('input[name="filename-type"][value="custom"]');
     
+    if (!previewElement) return;
+    
     let preview = '';
     
-    if (customRadio.checked) {
+    if (customRadio && customRadio.checked) {
       const customInput = document.getElementById('custom-filename');
-      preview = customInput.value.trim() || '파일명을 입력하세요';
+      preview = (customInput && customInput.value.trim()) || '파일명을 입력하세요';
     } else {
       const templateSelect = document.getElementById('filename-template');
-      const template = templateSelect.value;
+      const template = templateSelect ? templateSelect.value : '{role}_{period}';
       const roleNames = {
         instructor: '강사활동',
         judge: '심사활동',
@@ -2301,7 +2595,15 @@ class CareerManagerPopup {
 
   updateSpreadsheetDisplay() {
     const selectedSpreadsheet = document.getElementById('selected-spreadsheet');
-    const spreadsheetInfo = selectedSpreadsheet.querySelector('.spreadsheet-info');
+    if (!selectedSpreadsheet) return;
+    
+    let spreadsheetInfo = selectedSpreadsheet.querySelector('.spreadsheet-info');
+    if (!spreadsheetInfo) {
+      // Create the info element if it doesn't exist
+      spreadsheetInfo = document.createElement('span');
+      spreadsheetInfo.className = 'spreadsheet-info';
+      selectedSpreadsheet.appendChild(spreadsheetInfo);
+    }
     
     if (this.spreadsheetSettings.selectedSpreadsheetName) {
       spreadsheetInfo.textContent = `선택된 스프레드시트: ${this.spreadsheetSettings.selectedSpreadsheetName}`;

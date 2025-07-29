@@ -8,6 +8,7 @@ class CareerManagerOptions {
     await this.loadSettings();
     this.setupEventListeners();
     this.checkAuthStatus();
+    await this.checkUserPlan();
   }
 
   async loadSettings() {
@@ -80,9 +81,19 @@ class CareerManagerOptions {
       this.clearData();
     });
 
+    // Logout button
+    document.getElementById('logout-btn').addEventListener('click', () => {
+      this.logout();
+    });
+
     // Pricing page button
     document.getElementById('view-pricing-btn').addEventListener('click', () => {
       this.openPricingPage();
+    });
+
+    // Home button
+    document.getElementById('home-btn').addEventListener('click', () => {
+      this.openHomePage();
     });
 
     // File input
@@ -146,22 +157,29 @@ class CareerManagerOptions {
 
         if (result.success) {
           this.showToast('Google authentication successful!', 'success');
-          this.checkAuthStatus();
+          await this.checkAuthStatus();
         } else {
           this.showToast(result.error || 'Authentication failed', 'error');
+          btn.textContent = 'Connect';
         }
       } else {
         // Disconnect
+        btn.textContent = 'Disconnecting...';
+        btn.disabled = true;
+        
         await this.removeStoredData('google_auth');
         this.showToast('Google account disconnected', 'info');
-        this.checkAuthStatus();
+        await this.checkAuthStatus();
       }
       
-      btn.textContent = originalText;
       btn.disabled = false;
     } catch (error) {
       console.error('Google auth error:', error);
       this.showToast('Authentication error occurred', 'error');
+      
+      const btn = document.getElementById('google-connect-btn');
+      btn.textContent = 'Connect';
+      btn.disabled = false;
     }
   }
 
@@ -181,22 +199,29 @@ class CareerManagerOptions {
 
         if (result.success) {
           this.showToast('Google Drive authentication successful!', 'success');
-          this.checkAuthStatus();
+          await this.checkAuthStatus();
         } else {
           this.showToast(result.error || 'Authentication failed', 'error');
+          btn.textContent = 'Connect';
         }
       } else {
         // Disconnect
+        btn.textContent = 'Disconnecting...';
+        btn.disabled = true;
+        
         await this.removeStoredData('drive_auth');
         this.showToast('Google Drive disconnected', 'info');
-        this.checkAuthStatus();
+        await this.checkAuthStatus();
       }
       
-      btn.textContent = originalText;
       btn.disabled = false;
     } catch (error) {
       console.error('Drive auth error:', error);
       this.showToast('Authentication error occurred', 'error');
+      
+      const btn = document.getElementById('drive-connect-btn');
+      btn.textContent = 'Connect';
+      btn.disabled = false;
     }
   }
 
@@ -227,14 +252,18 @@ class CareerManagerOptions {
 
   async saveSettings() {
     try {
+      const userPlan = await this.getStoredData('userPlan') || 'free';
+      const isPlusUser = userPlan === 'plus';
+      
       const settings = {
         keywords: {
           lecture: this.parseKeywords(document.getElementById('lecture-keywords').value),
           evaluation: this.parseKeywords(document.getElementById('evaluation-keywords').value),
           mentoring: this.parseKeywords(document.getElementById('mentoring-keywords').value)
         },
-        autoSync: document.getElementById('auto-sync').checked,
-        syncInterval: parseInt(document.getElementById('sync-interval').value),
+        // Only allow auto-sync for Plus users
+        autoSync: isPlusUser ? document.getElementById('auto-sync').checked : false,
+        syncInterval: isPlusUser ? parseInt(document.getElementById('sync-interval').value) : 30,
         export: {
           format: document.getElementById('export-format').value,
           includeDescription: document.getElementById('include-description').checked,
@@ -248,7 +277,17 @@ class CareerManagerOptions {
       };
 
       await this.setStoredData('settings', settings);
-      this.showToast('Settings saved successfully!', 'success');
+      
+      // Update auto-sync in background script
+      await this.sendMessageToBackground({
+        action: 'update_auto_sync'
+      });
+      
+      if (!isPlusUser && document.getElementById('auto-sync').checked) {
+        this.showToast('Auto-sync feature requires Plus plan. Settings saved without auto-sync.', 'warning');
+      } else {
+        this.showToast('Settings saved successfully!', 'success');
+      }
     } catch (error) {
       console.error('Error saving settings:', error);
       this.showToast('Error saving settings', 'error');
@@ -350,6 +389,46 @@ class CareerManagerOptions {
     });
   }
 
+  openHomePage() {
+    window.location.href = chrome.runtime.getURL('home.html');
+  }
+
+  async logout() {
+    try {
+      const confirmed = confirm('정말 로그아웃하시겠습니까? 모든 인증 정보가 삭제됩니다.');
+      if (!confirmed) return;
+
+      const btn = document.getElementById('logout-btn');
+      const originalText = btn.textContent;
+      btn.textContent = '로그아웃 중...';
+      btn.disabled = true;
+
+      const response = await this.sendMessageToBackground({
+        action: 'logout'
+      });
+
+      if (response.success) {
+        this.showToast('로그아웃되었습니다.', 'success');
+        
+        setTimeout(() => {
+          // Redirect to home page
+          window.location.href = chrome.runtime.getURL('home.html');
+        }, 1000);
+      } else {
+        this.showToast('로그아웃 중 오류가 발생했습니다: ' + response.error, 'error');
+        btn.textContent = originalText;
+        btn.disabled = false;
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+      this.showToast('로그아웃 중 오류가 발생했습니다.', 'error');
+      
+      const btn = document.getElementById('logout-btn');
+      btn.textContent = '로그아웃';
+      btn.disabled = false;
+    }
+  }
+
   showToast(message, type = 'info') {
     const toast = document.getElementById('toast');
     toast.textContent = message;
@@ -415,6 +494,32 @@ class CareerManagerOptions {
         }
       });
     });
+  }
+
+  async checkUserPlan() {
+    try {
+      const userPlan = await this.getStoredData('userPlan') || 'free';
+      const isPlusUser = userPlan === 'plus';
+      
+      // Disable auto-sync settings for free users
+      const autoSyncCheckbox = document.getElementById('auto-sync');
+      const syncIntervalSelect = document.getElementById('sync-interval');
+      
+      if (!isPlusUser) {
+        autoSyncCheckbox.disabled = true;
+        autoSyncCheckbox.checked = false;
+        syncIntervalSelect.disabled = true;
+        
+        // Add visual indication
+        const autoSyncItem = autoSyncCheckbox.closest('.setting-item');
+        const syncIntervalItem = syncIntervalSelect.closest('.setting-item');
+        
+        autoSyncItem.style.opacity = '0.6';
+        syncIntervalItem.style.opacity = '0.6';
+      }
+    } catch (error) {
+      console.error('Error checking user plan:', error);
+    }
   }
 
   getDefaultSettings() {

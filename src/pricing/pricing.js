@@ -18,6 +18,14 @@ class PricingManager {
       });
     }
 
+    // Home button
+    const homeBtn = document.getElementById('home-btn');
+    if (homeBtn) {
+      homeBtn.addEventListener('click', () => {
+        this.openHomePage();
+      });
+    }
+
     // Upgrade button
     const upgradeBtn = document.getElementById('upgrade-btn');
     if (upgradeBtn) {
@@ -164,6 +172,10 @@ class PricingManager {
       // If opened as a popup, close it
       window.close();
     }
+  }
+
+  openHomePage() {
+    window.location.href = chrome.runtime.getURL('home.html');
   }
 
   showToast(message, type = 'info') {

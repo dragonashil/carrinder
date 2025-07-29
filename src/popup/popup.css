@@ -42,7 +42,12 @@ body {
   flex: 1;
 }
 
-.btn-expand {
+.header-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-icon, .btn-expand {
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
   color: #ffffff;
@@ -51,10 +56,9 @@ body {
   cursor: pointer;
   font-size: 14px;
   transition: all 0.2s ease;
-  margin-left: 16px;
 }
 
-.btn-expand:hover {
+.btn-icon:hover, .btn-expand:hover {
   background: rgba(255, 255, 255, 0.2);
   border-color: rgba(255, 255, 255, 0.3);
 }
@@ -102,22 +106,215 @@ body {
   gap: 12px;
 }
 
-/* Usage guide */
-.usage-guide {
+/* Welcome Section */
+.welcome-section {
   text-align: center;
-  margin-bottom: 16px;
-  padding: 16px 20px;
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-  border-radius: 8px;
-  border: 1px solid #dee2e6;
+  margin-bottom: 32px;
 }
 
-.guide-text {
+.welcome-message {
+  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.service-welcome {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 8px;
+  line-height: 1.3;
+}
+
+.service-description {
   font-size: 14px;
-  color: #495057;
+  color: #666666;
   margin: 0;
+  line-height: 1.5;
+}
+
+.welcome-header {
+  margin-bottom: 24px;
+}
+
+.welcome-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 8px;
+}
+
+.welcome-description {
+  font-size: 14px;
+  color: #666666;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.login-button-container {
+  display: flex;
+  justify-content: center;
+}
+
+.btn-google {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px 32px;
+  background: white;
+  border: 2px solid #e1e5e9;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.btn-google:hover {
+  border-color: #4285f4;
+  box-shadow: 0 4px 12px rgba(66, 133, 244, 0.2);
+  transform: translateY(-1px);
+}
+
+.btn-google:active {
+  transform: translateY(0);
+}
+
+.btn-google:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.google-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+/* Connection Status */
+.connection-status {
+  background: white;
+  border: 1px solid #e1e5e9;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.status-header {
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.status-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0;
+}
+
+.status-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.status-item.connected {
+  background: #e8f5e8;
+  border: 1px solid #c8e6c9;
+}
+
+.status-item.error {
+  background: #ffebee;
+  border: 1px solid #ffcdd2;
+}
+
+.status-icon {
+  font-size: 18px;
+  width: 20px;
+  text-align: center;
+  transition: all 0.2s ease;
+}
+
+.status-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.status-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.status-text {
+  font-size: 12px;
+  color: #666666;
+}
+
+.status-item.connected .status-text {
+  color: #2e7d32;
   font-weight: 500;
-  line-height: 1.4;
+}
+
+.status-item.error .status-text {
+  color: #d32f2f;
+  font-weight: 500;
+}
+
+/* Completion Message */
+.completion-message {
+  text-align: center;
+  padding: 20px;
+  background: linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 100%);
+  border-radius: 8px;
+  border: 1px solid #81c784;
+}
+
+.success-icon {
+  font-size: 32px;
+  margin-bottom: 12px;
+}
+
+.success-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #2e7d32;
+  margin: 0 0 8px 0;
+}
+
+.success-text {
+  font-size: 14px;
+  color: #388e3c;
+  margin: 0 0 16px 0;
+}
+
+.btn-next {
+  padding: 12px 24px;
+  font-size: 16px;
+  font-weight: 600;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .auth-item {

@@ -4,9 +4,9 @@ class CareerManagerBackground {
     this.init();
   }
 
-  init() {
+  async init() {
     this.setupMessageHandlers();
-    this.setupAlarms();
+    await this.setupAlarms();
   }
 
   setupMessageHandlers() {
@@ -69,6 +69,12 @@ class CareerManagerBackground {
         case 'auto_connect_drive':
           this.autoConnectDrive(sendResponse);
           break;
+        case 'logout':
+          this.logout(sendResponse);
+          break;
+        case 'update_auto_sync':
+          this.updateAutoSync(sendResponse);
+          break;
         default:
           sendResponse({ success: false, error: 'Unknown action' });
       }
@@ -76,11 +82,25 @@ class CareerManagerBackground {
     });
   }
 
-  setupAlarms() {
-    // Set up periodic sync (every 30 minutes)
-    chrome.alarms.create('sync_events', {
-      periodInMinutes: 30
-    });
+  async setupAlarms() {
+    // Clear existing alarms first
+    chrome.alarms.clear('sync_events');
+    
+    // Get user settings
+    const settings = await this.getStoredData('settings') || this.getDefaultSettings();
+    const userPlan = await this.getStoredData('userPlan') || 'free';
+    
+    // Only setup auto-sync for Plus users
+    if (userPlan === 'plus' && settings.autoSync) {
+      const syncInterval = settings.syncInterval || 30;
+      console.log(`Setting up auto-sync with ${syncInterval} minute interval for Plus user`);
+      
+      chrome.alarms.create('sync_events', {
+        periodInMinutes: syncInterval
+      });
+    } else {
+      console.log('Auto-sync disabled: requires Plus plan and auto-sync setting enabled');
+    }
 
     chrome.alarms.onAlarm.addListener((alarm) => {
       if (alarm.name === 'sync_events') {
@@ -89,18 +109,82 @@ class CareerManagerBackground {
     });
   }
 
+  async updateAutoSync(sendResponse) {
+    try {
+      console.log('Updating auto-sync settings...');
+      await this.setupAlarms();
+      sendResponse({ success: true, message: 'Auto-sync settings updated' });
+    } catch (error) {
+      console.error('Error updating auto-sync:', error);
+      sendResponse({ success: false, error: error.message });
+    }
+  }
+
   async authenticateGoogle(sendResponse) {
     try {
+      // Check if we already have a valid token
+      const existingAuth = await this.getStoredData('google_auth');
+      
+      if (existingAuth && existingAuth.access_token && existingAuth.expires_at > Date.now()) {
+        console.log('Checking existing token validity...');
+        
+        // Verify token is actually valid by making a test API call
+        try {
+          const userInfo = await this.getUserInfo(existingAuth.access_token);
+          
+          // If getUserInfo succeeds with real user data, token is valid
+          if (userInfo && userInfo.email && userInfo.email !== 'user@example.com') {
+            console.log('Using existing valid token');
+            sendResponse({ 
+              success: true, 
+              token: existingAuth.access_token,
+              userInfo: userInfo,
+              name: userInfo.name,
+              email: userInfo.email,
+              picture: userInfo.picture
+            });
+            return;
+          } else {
+            console.log('Existing token invalid, clearing and requesting new auth');
+            await this.clearStoredData('google_auth');
+          }
+        } catch (error) {
+          console.log('Existing token invalid, clearing and requesting new auth');
+          await this.clearStoredData('google_auth');
+        }
+      }
+      
+      console.log('Getting new auth token');
+      
       const token = await this.getAuthToken([
         'https://www.googleapis.com/auth/calendar.readonly',
         'https://www.googleapis.com/auth/spreadsheets',
-        'https://www.googleapis.com/auth/drive.file'
+        'https://www.googleapis.com/auth/drive.file',
+        'https://www.googleapis.com/auth/userinfo.profile',
+        'https://www.googleapis.com/auth/userinfo.email'
       ]);
       
       if (token) {
-        // Store token
-        await this.storeAuthToken('google_auth', token);
-        sendResponse({ success: true, token });
+        // Get user info
+        const userInfo = await this.getUserInfo(token);
+        
+        // Store token with extended info
+        const authData = {
+          access_token: token,
+          expires_at: Date.now() + (3600 * 1000), // 1 hour from now
+          timestamp: Date.now()
+        };
+        
+        await this.storeData('google_auth', authData);
+        
+        sendResponse({ 
+          success: true, 
+          token,
+          userInfo: userInfo,
+          name: userInfo.name,
+          email: userInfo.email,
+          picture: userInfo.picture
+        });
       } else {
         sendResponse({ success: false, error: 'Failed to get auth token' });
       }
@@ -110,8 +194,60 @@ class CareerManagerBackground {
     }
   }
 
+  async getCachedToken() {
+    try {
+      const authData = await this.getStoredData('google_auth');
+      return authData ? authData.access_token : null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  async getUserInfo(token) {
+    const response = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Failed to get user info: ${response.status} ${response.statusText}`);
+    }
+    
+    return await response.json();
+  }
+
   async authenticateDrive(sendResponse) {
     try {
+      // Check if we already have a valid token
+      const existingAuth = await this.getStoredData('drive_auth');
+      
+      if (existingAuth && existingAuth.access_token && existingAuth.expires_at > Date.now()) {
+        console.log('Checking existing Drive token validity...');
+        
+        // Verify token is actually valid by making a test API call
+        try {
+          const testResponse = await fetch('https://www.googleapis.com/drive/v3/about?fields=user', {
+            headers: {
+              'Authorization': `Bearer ${existingAuth.access_token}`
+            }
+          });
+          
+          if (testResponse.ok) {
+            console.log('Using existing valid Drive token');
+            sendResponse({ success: true, token: existingAuth.access_token });
+            return;
+          } else {
+            console.log('Existing Drive token invalid, clearing and requesting new auth');
+            await this.clearStoredData('drive_auth');
+          }
+        } catch (error) {
+          console.log('Existing Drive token invalid, clearing and requesting new auth');
+          await this.clearStoredData('drive_auth');
+        }
+      }
+      
+      console.log('Getting new Drive auth token');
       const token = await this.getAuthToken([
         'https://www.googleapis.com/auth/calendar.readonly',
         'https://www.googleapis.com/auth/spreadsheets',
@@ -1112,6 +1248,12 @@ class CareerManagerBackground {
     });
   }
 
+  async storeData(key, data) {
+    return new Promise((resolve) => {
+      chrome.storage.local.set({ [key]: data }, resolve);
+    });
+  }
+
   async clearStoredData(key) {
     return new Promise((resolve) => {
       chrome.storage.local.remove([key], resolve);
@@ -1531,6 +1673,60 @@ class CareerManagerBackground {
         success: false,
         error: error.message
       });
+    }
+  }
+
+  async logout(sendResponse) {
+    try {
+      console.log('Starting logout process...');
+      
+      // Get cached token before clearing
+      const cachedToken = await this.getCachedToken();
+      
+      // Remove ALL cached tokens from Chrome Identity API first
+      await new Promise((resolve) => {
+        chrome.identity.clearAllCachedAuthTokens(() => {
+          console.log('All cached tokens cleared');
+          resolve();
+        });
+      });
+      
+      // Also specifically remove the cached token if we have it
+      if (cachedToken) {
+        await new Promise((resolve) => {
+          chrome.identity.removeCachedAuthToken({
+            token: cachedToken
+          }, () => {
+            console.log('Specific cached token removed');
+            resolve();
+          });
+        });
+      }
+      
+      // Clear all Chrome storage
+      await new Promise((resolve) => {
+        chrome.storage.local.clear(() => {
+          console.log('All local storage cleared');
+          resolve();
+        });
+      });
+      
+      await new Promise((resolve) => {
+        chrome.storage.sync.clear(() => {
+          console.log('All sync storage cleared');
+          resolve();
+        });
+      });
+      
+      // Clear any remaining alarms
+      chrome.alarms.clearAll();
+      
+      console.log('Logout completed successfully');
+      sendResponse({ success: true, message: 'Logged out successfully' });
+      
+    } catch (error) {
+      console.error('Logout error:', error);
+      sendResponse({ success: false, error: error.message });
     }
   }
 }

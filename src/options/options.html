@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Career Manager - Settings</title>
   <link rel="stylesheet" href="options.css">
 </head>
+
 <body>
   <div class="container">
     <header class="header">
@@ -61,7 +63,8 @@
               <p class="setting-description">Keywords to identify lecture events</p>
             </div>
             <div class="setting-control">
-              <textarea class="textarea" id="lecture-keywords" rows="3" placeholder="강의, 특강, 수업, lecture, seminar"></textarea>
+              <textarea class="textarea" id="lecture-keywords" rows="3"
+                placeholder="강의, 특강, 수업, lecture, seminar"></textarea>
             </div>
           </div>
 
@@ -71,7 +74,8 @@
               <p class="setting-description">Keywords to identify evaluation events</p>
             </div>
             <div class="setting-control">
-              <textarea class="textarea" id="evaluation-keywords" rows="3" placeholder="심사, 평가, 검토, evaluation, review"></textarea>
+              <textarea class="textarea" id="evaluation-keywords" rows="3"
+                placeholder="심사, 평가, 검토, evaluation, review"></textarea>
             </div>
           </div>
 
@@ -81,7 +85,8 @@
               <p class="setting-description">Keywords to identify mentoring events</p>
             </div>
             <div class="setting-control">
-              <textarea class="textarea" id="mentoring-keywords" rows="3" placeholder="멘토링, 코칭, 상담, mentoring, coaching"></textarea>
+              <textarea class="textarea" id="mentoring-keywords" rows="3"
+                placeholder="멘토링, 코칭, 상담, mentoring, coaching"></textarea>
             </div>
           </div>
         </div>
@@ -92,8 +97,8 @@
         <div class="setting-group">
           <div class="setting-item">
             <div class="setting-info">
-              <label class="setting-label">Auto Sync</label>
-              <p class="setting-description">Automatically sync events in the background</p>
+              <label class="setting-label">Auto Sync <span class="plan-badge">💎 Plus</span></label>
+              <p class="setting-description">Automatically sync events in the background (Plus 요금제에서 사용 가능)</p>
             </div>
             <div class="setting-control">
               <label class="switch">
@@ -105,8 +110,8 @@
 
           <div class="setting-item">
             <div class="setting-info">
-              <label class="setting-label">Sync Interval</label>
-              <p class="setting-description">How often to sync events (minutes)</p>
+              <label class="setting-label">Sync Interval <span class="plan-badge">💎 Plus</span></label>
+              <p class="setting-description">How often to sync events (minutes) (Plus 요금제에서 사용 가능)</p>
             </div>
             <div class="setting-control">
               <select class="select" id="sync-interval">
@@ -244,6 +249,16 @@
               <button class="btn btn-danger" id="clear-data-btn">Clear All Data</button>
             </div>
           </div>
+
+          <div class="setting-item">
+            <div class="setting-info">
+              <label class="setting-label">Logout</label>
+              <p class="setting-description">Sign out and clear all authentication data</p>
+            </div>
+            <div class="setting-control">
+              <button class="btn btn-danger" id="logout-btn">로그아웃</button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -251,11 +266,12 @@
         <button class="btn btn-primary" id="save-settings-btn">Save Settings</button>
         <button class="btn btn-secondary" id="reset-settings-btn">Reset to Default</button>
         <button class="btn btn-outline" id="view-pricing-btn">💎 요금제 보기</button>
+        <button class="btn btn-outline" id="home-btn">홈</button>
       </div>
     </main>
 
     <footer class="footer">
-      <p>&copy; 2024 Career Manager. All rights reserved.</p>
+      <p>&copy; 2025 Carrinder. All rights reserved.</p>
     </footer>
   </div>
 
@@ -263,4 +279,5 @@
 
   <script src="options.js"></script>
 </body>
+
 </html>
