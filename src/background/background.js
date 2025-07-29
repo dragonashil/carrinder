@@ -154,7 +154,7 @@ class CareerManagerBackground {
         }
       }
       
-      console.log('Getting new auth token');
+      console.log('Getting new auth token with account selection');
       
       const token = await this.getAuthToken([
         'https://www.googleapis.com/auth/calendar.readonly',
@@ -162,7 +162,7 @@ class CareerManagerBackground {
         'https://www.googleapis.com/auth/drive.file',
         'https://www.googleapis.com/auth/userinfo.profile',
         'https://www.googleapis.com/auth/userinfo.email'
-      ]);
+      ], true); // Force new auth to show account selection
       
       if (token) {
         // Get user info
@@ -267,18 +267,36 @@ class CareerManagerBackground {
     }
   }
 
-  async getAuthToken(scopes) {
+  async getAuthToken(scopes, forceNewAuth = false) {
     return new Promise((resolve, reject) => {
-      chrome.identity.getAuthToken({
-        interactive: true,
-        scopes: scopes
-      }, (token) => {
-        if (chrome.runtime.lastError) {
-          reject(new Error(chrome.runtime.lastError.message));
-        } else {
-          resolve(token);
-        }
-      });
+      // If forceNewAuth is true, first clear any cached tokens
+      if (forceNewAuth) {
+        chrome.identity.clearAllCachedAuthTokens(() => {
+          console.log('Cleared cached tokens before new auth');
+          
+          chrome.identity.getAuthToken({
+            interactive: true,
+            scopes: scopes
+          }, (token) => {
+            if (chrome.runtime.lastError) {
+              reject(new Error(chrome.runtime.lastError.message));
+            } else {
+              resolve(token);
+            }
+          });
+        });
+      } else {
+        chrome.identity.getAuthToken({
+          interactive: true,
+          scopes: scopes
+        }, (token) => {
+          if (chrome.runtime.lastError) {
+            reject(new Error(chrome.runtime.lastError.message));
+          } else {
+            resolve(token);
+          }
+        });
+      }
     });
   }
 
