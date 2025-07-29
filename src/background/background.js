@@ -1013,7 +1013,7 @@ class CareerManagerBackground {
         throw new Error('Google 인증이 필요합니다.');
       }
 
-      const { spreadsheetId, events, role } = params;
+      const { spreadsheetId, events, role, sheetName } = params;
 
       // Convert events to spreadsheet rows
       const rows = events.map(event => this.eventToSpreadsheetRow(event));
@@ -1023,14 +1023,25 @@ class CareerManagerBackground {
         return;
       }
 
-      // Add data to spreadsheet
-      const range = `A2:J${rows.length + 1}`;
-      const updateUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?valueInputOption=RAW`;
+      // Use sheet name if provided, otherwise use default sheet name
+      const targetSheet = sheetName || this.getSheetNameForRole(role);
+      
+      console.log(`populateSpreadsheet called with params:`, {
+        spreadsheetId,
+        role,
+        sheetName,
+        targetSheet,
+        eventsCount: events.length
+      });
+      
+      // Add data to specific sheet tab - using append to avoid overwriting
+      const range = `'${targetSheet}'!A2:J`;
+      const appendUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`;
 
-      console.log(`Adding ${rows.length} rows to spreadsheet ${spreadsheetId}`);
+      console.log(`Adding ${rows.length} rows to sheet '${targetSheet}' in spreadsheet ${spreadsheetId}`);
 
-      const response = await fetch(updateUrl, {
-        method: 'PUT',
+      const response = await fetch(appendUrl, {
+        method: 'POST',
         headers: {
           'Authorization': `Bearer ${authData.access_token}`,
           'Content-Type': 'application/json'

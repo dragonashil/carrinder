@@ -110,6 +110,9 @@ class CareerManagerPopup {
       periodType.addEventListener('change', (e) => {
         this.handlePeriodTypeChange(e.target.value);
       });
+      
+      // Initialize with default period type (year)
+      this.handlePeriodTypeChange(periodType.value || 'year');
     }
 
     // Data collection button
@@ -160,6 +163,7 @@ class CareerManagerPopup {
     filenameRadios.forEach(radio => {
       radio.addEventListener('change', (e) => {
         this.handleFilenameTypeChange(e.target.value);
+        this.saveFilenameSettings();
       });
     });
 
@@ -168,6 +172,7 @@ class CareerManagerPopup {
     if (templateSelect) {
       templateSelect.addEventListener('change', () => {
         this.updateFilenamePreview();
+        this.saveFilenameSettings();
       });
     }
 
@@ -176,11 +181,27 @@ class CareerManagerPopup {
     if (customInput) {
       customInput.addEventListener('input', () => {
         this.updateFilenamePreview();
+        this.saveFilenameSettings();
       });
     }
 
     // Initial setup
     this.updateFilenamePreview();
+  }
+
+  saveFilenameSettings() {
+    const customRadio = document.querySelector('input[name="filename-type"][value="custom"]');
+    const templateSelect = document.getElementById('filename-template');
+    const customInput = document.getElementById('custom-filename');
+
+    if (customRadio.checked) {
+      this.driveSettings.customFilename = customInput.value.trim();
+    } else {
+      this.driveSettings.customFilename = '';
+      this.driveSettings.filenameTemplate = templateSelect.value;
+    }
+
+    this.saveDriveSettings();
   }
 
   setupFolderModalListeners() {
@@ -313,9 +334,10 @@ class CareerManagerPopup {
         } else {
           console.error('Authentication failed:', response.error);
           this.showError('Google authentication failed. Please try again.');
+          // Only restore text on failure
+          btn.textContent = originalText;
         }
         
-        btn.textContent = originalText;
         btn.disabled = false;
       });
     } catch (error) {
@@ -350,9 +372,10 @@ class CareerManagerPopup {
         } else {
           console.error('Drive authentication failed:', response.error);
           this.showError('Google Drive authentication failed. Please try again.');
+          // Only restore text on failure
+          btn.textContent = originalText;
         }
         
-        btn.textContent = originalText;
         btn.disabled = false;
       });
     } catch (error) {
@@ -368,13 +391,15 @@ class CareerManagerPopup {
       btn.disabled = true;
 
       // Clear Google auth data from storage
-      chrome.storage.local.remove(['google_auth'], async () => {
-        // Update UI
-        await this.checkAuthStatus();
-        this.events = [];
-        this.updateUI();
-        this.showToast('Google Calendar disconnected successfully.', 'success');
+      await new Promise((resolve) => {
+        chrome.storage.local.remove(['google_auth'], resolve);
       });
+      
+      // Update UI
+      await this.checkAuthStatus();
+      this.events = [];
+      this.updateUI();
+      this.showToast('Google Calendar disconnected successfully.', 'success');
 
     } catch (error) {
       console.error('Error during Google disconnection:', error);
@@ -389,11 +414,13 @@ class CareerManagerPopup {
       btn.disabled = true;
 
       // Clear Drive auth data from storage
-      chrome.storage.local.remove(['drive_auth'], async () => {
-        // Update UI
-        await this.checkAuthStatus();
-        this.showToast('Google Drive disconnected successfully.', 'success');
+      await new Promise((resolve) => {
+        chrome.storage.local.remove(['drive_auth'], resolve);
       });
+      
+      // Update UI
+      await this.checkAuthStatus();
+      this.showToast('Google Drive disconnected successfully.', 'success');
 
     } catch (error) {
       console.error('Error during Drive disconnection:', error);
@@ -647,21 +674,29 @@ class CareerManagerPopup {
       case 'year':
         document.getElementById('year-selector').style.display = 'block';
         this.populateYearOptions();
+        this.addYearChangeListener();
         break;
       case 'month':
         document.getElementById('month-selector').style.display = 'block';
         this.populateMonthOptions();
+        this.addMonthChangeListeners();
         break;
       case 'custom':
         document.getElementById('custom-selector').style.display = 'block';
         this.setDefaultCustomDates();
+        this.addCustomDateListeners();
         break;
     }
+    
+    // Update filename preview when period type changes
+    this.updateFilenamePreview();
   }
 
   populateYearOptions() {
     const yearSelect = document.getElementById('year-select');
     const currentYear = new Date().getFullYear();
+    
+    console.log('Populating year options, current year:', currentYear);
     
     yearSelect.innerHTML = '';
     for (let year = currentYear; year >= currentYear - 5; year--) {
@@ -670,6 +705,48 @@ class CareerManagerPopup {
       option.textContent = `${year}년`;
       yearSelect.appendChild(option);
     }
+    
+    // Explicitly set current year as selected
+    yearSelect.value = currentYear;
+    console.log('Year select value set to:', yearSelect.value);
+  }
+
+  addYearChangeListener() {
+    const yearSelect = document.getElementById('year-select');
+    // Remove existing listener if any
+    yearSelect.removeEventListener('change', this.updateFilenamePreview);
+    // Add new listener
+    yearSelect.addEventListener('change', () => {
+      this.updateFilenamePreview();
+    });
+  }
+
+  addMonthChangeListeners() {
+    const startMonthSelect = document.getElementById('start-month-select');
+    const endMonthSelect = document.getElementById('end-month-select');
+    
+    [startMonthSelect, endMonthSelect].forEach(select => {
+      if (select) {
+        select.removeEventListener('change', this.updateFilenamePreview);
+        select.addEventListener('change', () => {
+          this.updateFilenamePreview();
+        });
+      }
+    });
+  }
+
+  addCustomDateListeners() {
+    const startDate = document.getElementById('start-date');
+    const endDate = document.getElementById('end-date');
+    
+    [startDate, endDate].forEach(input => {
+      if (input) {
+        input.removeEventListener('change', this.updateFilenamePreview);
+        input.addEventListener('change', () => {
+          this.updateFilenamePreview();
+        });
+      }
+    });
   }
 
   populateMonthOptions() {
@@ -785,18 +862,8 @@ class CareerManagerPopup {
       // Load current settings
       await this.loadDriveSettings();
       
-      // Ask user which method they prefer
-      const useGooglePicker = confirm('Google Picker를 사용하시겠습니까?\n\n' +
-        '확인: Google Picker 사용 (권장)\n' +
-        '취소: 내장 폴더 선택기 사용');
-      
-      if (useGooglePicker) {
-        // Open Google Picker in new tab
-        this.openGooglePickerTab();
-      } else {
-        // Show our custom folder selection modal
-        this.showFolderModal();
-      }
+      // Always use the built-in folder selection modal
+      this.showFolderModal();
       
     } catch (error) {
       console.error('Error in selectDriveFolder:', error);
@@ -837,52 +904,6 @@ class CareerManagerPopup {
     selectedFolder.innerHTML = `<span class="folder-path">${folderName}</span>`;
   }
   
-  openGooglePickerTab() {
-    // Get the extension URL for the picker page
-    const pickerUrl = chrome.runtime.getURL('picker.html');
-    
-    // Create a modal window instead of a new tab
-    chrome.windows.create({
-      url: pickerUrl,
-      type: 'popup',
-      width: 800,
-      height: 600,
-      left: Math.round((screen.width - 800) / 2),
-      top: Math.round((screen.height - 600) / 2)
-    }, (window) => {
-      // Listen for messages from the picker window
-      this.setupPickerMessageListener();
-      this.showToast('Google Drive 폴더 선택기가 열렸습니다.', 'info');
-    });
-  }
-  
-  setupPickerMessageListener() {
-    // Add message listener for folder selection
-    const messageListener = (message, sender, sendResponse) => {
-      if (message.action === 'folderSelected' && message.folder) {
-        this.handleFolderSelection(message.folder);
-        // Remove the listener after receiving the message
-        chrome.runtime.onMessage.removeListener(messageListener);
-      }
-    };
-    
-    chrome.runtime.onMessage.addListener(messageListener);
-  }
-  
-  async handleFolderSelection(folder) {
-    try {
-      // Save the selected folder
-      this.driveSettings.selectedFolderId = folder.id;
-      this.driveSettings.selectedFolderName = folder.name;
-      
-      await this.saveDriveSettings();
-      this.updateFolderDisplay();
-      this.showToast(`폴더 "${folder.name}"이 선택되었습니다.`, 'success');
-    } catch (error) {
-      console.error('Error handling folder selection:', error);
-      this.showError('폴더 선택 처리 중 오류가 발생했습니다.');
-    }
-  }
 
   updateFilenameSettings() {
     // Update filename type radio buttons
@@ -955,7 +976,8 @@ class CareerManagerPopup {
       
       switch (periodType) {
         case 'year':
-          period = new Date().getFullYear().toString();
+          const yearSelect = document.getElementById('year-select');
+          period = yearSelect.value || new Date().getFullYear().toString();
           break;
         case 'month':
           const startMonthSelect = document.getElementById('start-month-select');
@@ -974,7 +996,15 @@ class CareerManagerPopup {
           }
           break;
         case 'custom':
-          period = '2025_01_01_2025_12_31';
+          const startDate = document.getElementById('start-date');
+          const endDate = document.getElementById('end-date');
+          if (startDate && endDate && startDate.value && endDate.value) {
+            const start = startDate.value.replace(/-/g, '');
+            const end = endDate.value.replace(/-/g, '');
+            period = `${start}_${end}`;
+          } else {
+            period = '2025_01_01_2025_12_31';
+          }
           break;
       }
       
@@ -1235,10 +1265,12 @@ class CareerManagerPopup {
       
       try {
         let response;
+        let sheetName;
         
         if (this.spreadsheetSettings.type === 'existing' && this.spreadsheetSettings.selectedSpreadsheetId) {
           // Add new tab to existing spreadsheet
           const tabTitle = this.generateTabTitle(role, config);
+          sheetName = tabTitle; // Store the tab title for later use
           response = await this.sendMessageToBackground({
             action: 'addSheetTab',
             params: {
@@ -1250,6 +1282,7 @@ class CareerManagerPopup {
         } else {
           // Create new spreadsheet
           const sheetTitle = this.generateSheetTitle(role, config);
+          sheetName = this.getSheetNameForRole(role); // Use default sheet name for new spreadsheets
           response = await this.sendMessageToBackground({
             action: 'createSpreadsheet',
             params: {
@@ -1263,7 +1296,8 @@ class CareerManagerPopup {
         if (response.success) {
           createdSheets[role] = {
             ...response,
-            events: roleEvents
+            events: roleEvents,
+            sheetName: sheetName
           };
         } else {
           console.error(`Failed to create sheet for ${role}:`, response.error);
@@ -1275,6 +1309,16 @@ class CareerManagerPopup {
     }
     
     return createdSheets;
+  }
+
+  getSheetNameForRole(role) {
+    const roleNames = {
+      instructor: '강사활동',
+      judge: '심사활동',
+      mentor: '멘토링활동',
+      other: '기타활동'
+    };
+    return roleNames[role] || role;
   }
 
   generateTabTitle(role, config) {
@@ -1369,12 +1413,19 @@ class CareerManagerPopup {
           continue;
         }
 
+        console.log(`Calling populateSpreadsheet for role ${role}:`, {
+          spreadsheetId: sheetInfo.spreadsheetId,
+          eventsCount: (sheetInfo.events || []).length,
+          sheetName: sheetInfo.sheetName
+        });
+        
         await this.sendMessageToBackground({
           action: 'populateSpreadsheet',
           params: {
             spreadsheetId: sheetInfo.spreadsheetId,
             events: sheetInfo.events || [],
-            role: role
+            role: role,
+            sheetName: sheetInfo.sheetName
           }
         });
       } catch (error) {

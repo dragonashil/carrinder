@@ -10,7 +10,7 @@ body {
   font-size: 14px;
   line-height: 1.6;
   color: #333;
-  background-color: #f8f9fa;
+  background-color: #ffffff;
 }
 
 .container {
@@ -24,10 +24,10 @@ body {
   text-align: center;
   margin-bottom: 40px;
   padding: 40px 0;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #000000;
   color: white;
   border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
 }
 
 .title {
@@ -70,7 +70,7 @@ body {
   content: '';
   width: 4px;
   height: 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #000000;
   border-radius: 2px;
 }
 
@@ -88,13 +88,13 @@ body {
   padding: 16px;
   border: 1px solid #e9ecef;
   border-radius: 8px;
-  background: #f8f9fa;
+  background: #ffffff;
   transition: all 0.2s ease;
 }
 
 .setting-item:hover {
-  background: #fff;
-  border-color: #667eea;
+  background: #f8f9fa;
+  border-color: #333333;
 }
 
 .setting-info {
@@ -134,8 +134,8 @@ body {
 
 .input:focus, .textarea:focus, .select:focus {
   outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  border-color: #333333;
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
 }
 
 .textarea {
@@ -169,31 +169,31 @@ body {
 }
 
 .btn-primary {
-  background: #667eea;
+  background: #000000;
   color: white;
 }
 
 .btn-primary:hover {
-  background: #5a6fd8;
+  background: #333333;
 }
 
 .btn-secondary {
-  background: #6c757d;
+  background: #666666;
   color: white;
 }
 
 .btn-secondary:hover {
-  background: #5a6268;
+  background: #333333;
 }
 
 .btn-outline {
   background: transparent;
-  color: #667eea;
-  border: 1px solid #667eea;
+  color: #333333;
+  border: 1px solid #333333;
 }
 
 .btn-outline:hover {
-  background: #667eea;
+  background: #333333;
   color: white;
 }
 
@@ -245,7 +245,7 @@ body {
 }
 
 input:checked + .slider {
-  background-color: #667eea;
+  background-color: #000000;
 }
 
 input:checked + .slider:before {
@@ -340,7 +340,7 @@ input:checked + .slider:before {
   width: 20px;
   height: 20px;
   margin: -10px 0 0 -10px;
-  border: 2px solid #667eea;
+  border: 2px solid #333333;
   border-top: 2px solid transparent;
   border-radius: 50%;
   animation: spin 1s linear infinite;
@@ -442,7 +442,7 @@ input:checked + .slider:before {
 .input:focus,
 .textarea:focus,
 .select:focus {
-  outline: 2px solid #667eea;
+  outline: 2px solid #333333;
   outline-offset: 2px;
 }
 
