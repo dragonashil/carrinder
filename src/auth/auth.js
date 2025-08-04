@@ -74,16 +74,8 @@ class CarrinderAuth {
       this.completeSignup();
     });
 
-    // Terms and privacy links
-    document.getElementById('terms-link')?.addEventListener('click', (e) => {
-      e.preventDefault();
-      this.showTerms();
-    });
-
-    document.getElementById('privacy-link')?.addEventListener('click', (e) => {
-      e.preventDefault();
-      this.showPrivacy();
-    });
+    // Terms and privacy links are now direct links, no need for event listeners
+    // The links are already set in HTML with target="_blank"
   }
 
   initializeTossPayments() {
@@ -409,13 +401,7 @@ class CarrinderAuth {
     }
   }
 
-  showTerms() {
-    alert('이용약관\n\n1. 서비스 이용 약관...\n2. 사용자 의무...\n3. 서비스 제공자의 의무...\n\n(실제 구현시 별도 페이지나 모달로 표시)');
-  }
-
-  showPrivacy() {
-    alert('개인정보처리방침\n\n1. 개인정보 수집 및 이용 목적...\n2. 수집하는 개인정보의 항목...\n3. 개인정보의 보유 및 이용기간...\n\n(실제 구현시 별도 페이지나 모달로 표시)');
-  }
+  // showTerms and showPrivacy methods removed - using direct links now
 
   showToast(message, type = 'info') {
     const toast = document.getElementById('toast');
