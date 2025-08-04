@@ -8,6 +8,9 @@ class CareerManagerPopup {
   }
 
   async init() {
+    // Initialize language in parallel (don't wait)
+    this.initializeLanguage();
+    
     this.driveSettings = {
       selectedFolderId: 'root',
       selectedFolderName: '루트 폴더',
@@ -35,6 +38,48 @@ class CareerManagerPopup {
     await this.loadSpreadsheetSummary();
     await this.loadDriveSettings();
     this.updateUI();
+    
+    // Check URL parameters for section after auth status is determined
+    this.checkUrlParameters();
+  }
+
+  async initializeLanguage() {
+    // Wait for i18n to be available
+    let attempts = 0;
+    while (!window.i18n && attempts < 50) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+      attempts++;
+    }
+    
+    if (window.i18n) {
+      await window.i18n.loadTranslations();
+      this.setupLanguageToggle();
+    } else {
+      console.warn('i18n not available in popup after waiting');
+    }
+  }
+
+  setupLanguageToggle() {
+    const container = document.getElementById('language-toggle-container');
+    if (container && window.i18n) {
+      // Clear existing content
+      container.innerHTML = '';
+      
+      const languageToggle = window.i18n.createLanguageToggle();
+      container.appendChild(languageToggle);
+      
+      // Update current language display
+      const languageText = languageToggle.querySelector('.language-text');
+      if (languageText) {
+        languageText.textContent = window.i18n.getCurrentLanguage().toUpperCase();
+      }
+      
+      document.addEventListener('languageChanged', () => {
+        window.i18n.updatePageTexts();
+      });
+    } else {
+      console.warn('Language toggle container not found in popup or i18n not available');
+    }
   }
 
   checkWindowMode() {
@@ -47,6 +92,12 @@ class CareerManagerPopup {
       if (window.outerWidth > 850) {
         document.body.classList.add('window-mode');
         
+        // Add windowed class to container for centering
+        const container = document.querySelector('.container');
+        if (container) {
+          container.classList.add('windowed');
+        }
+        
         // Hide expand button in window mode
         const expandBtn = document.getElementById('expand-btn');
         if (expandBtn) {
@@ -56,8 +107,32 @@ class CareerManagerPopup {
     }
   }
 
+  checkUrlParameters() {
+    // Check URL parameters for direct navigation
+    const urlParams = new URLSearchParams(window.location.search);
+    const section = urlParams.get('section');
+    
+    if (section === 'dashboard' && this.isAuthenticated) {
+      console.log('Navigating directly to dashboard from URL parameter');
+      // Wait a bit for UI to be ready
+      setTimeout(() => {
+        this.navigateToDashboard();
+      }, 100);
+    }
+  }
+
   setupBasicEventListeners() {
     console.log('Setting up basic event listeners...');
+    
+    // Handle browser back button
+    window.addEventListener('popstate', (event) => {
+      console.log('Browser back button pressed');
+      // If in dashboard, go back to auth section
+      const dashboard = document.getElementById('dashboard');
+      if (dashboard && dashboard.style.display !== 'none') {
+        this.backToMainDashboard();
+      }
+    });
     
     // Authentication buttons
     const googleAuthBtn = document.getElementById('google-auth-btn');
@@ -129,6 +204,13 @@ class CareerManagerPopup {
       });
     }
 
+    const notionBtn = document.getElementById('notion-btn');
+    if (notionBtn) {
+      notionBtn.addEventListener('click', () => {
+        this.openNotionIntegration();
+      });
+    }
+
     const notionAuthBtn = document.getElementById('notion-auth-btn');
     if (notionAuthBtn) {
       notionAuthBtn.addEventListener('click', () => {
@@ -182,6 +264,14 @@ class CareerManagerPopup {
         this.startDataCollection();
       });
       console.log('Collect button event listener added');
+    }
+
+    // Notion database creation button
+    const createNotionDbBtn = document.getElementById('create-notion-db-btn');
+    if (createNotionDbBtn) {
+      createNotionDbBtn.addEventListener('click', () => {
+        this.createNotionDatabaseFromDashboard();
+      });
     }
 
     // Folder selection button
@@ -324,6 +414,21 @@ class CareerManagerPopup {
         this.createNewFolder();
       });
     }
+
+    // Collection results buttons
+    const newCollectionBtn = document.getElementById('new-collection-btn');
+    if (newCollectionBtn) {
+      newCollectionBtn.addEventListener('click', () => {
+        this.startNewCollection();
+      });
+    }
+
+    const backToMainBtn = document.getElementById('back-to-main-btn');
+    if (backToMainBtn) {
+      backToMainBtn.addEventListener('click', () => {
+        this.backToMainDashboard();
+      });
+    }
   }
 
   async checkAuthStatus() {
@@ -379,8 +484,61 @@ class CareerManagerPopup {
         driveBtn.classList.remove('connected');
         driveBtn.disabled = true;
       }
+
+      // Check Notion integration status
+      await this.checkNotionStatus();
+      
+      // If authenticated and no section parameter, go to dashboard
+      if (this.isAuthenticated && !window.location.search.includes('section=')) {
+        console.log('User is authenticated, navigating to dashboard');
+        this.navigateToDashboard();
+      }
     } catch (error) {
       console.error('Error checking auth status:', error);
+    }
+  }
+
+  async checkNotionStatus() {
+    try {
+      const notionSettings = await this.getStoredData('notionSettings');
+      console.log('Checking Notion status:', notionSettings);
+      
+      // Check if elements exist first
+      const createNotionBtn = document.getElementById('create-notion-db-btn');
+      
+      if (notionSettings && notionSettings.token) {
+        console.log('Notion token found, validating...');
+        
+        // Validate token
+        const response = await this.sendMessageToBackground({
+          action: 'validate_notion_token',
+          token: notionSettings.token
+        });
+        
+        if (response.success && response.valid) {
+          console.log('Notion token is valid');
+          if (createNotionBtn) {
+            createNotionBtn.style.display = 'inline-block';
+            createNotionBtn.disabled = false;
+          }
+        } else {
+          console.log('Notion token is invalid');
+          if (createNotionBtn) {
+            createNotionBtn.style.display = 'inline-block';
+            createNotionBtn.disabled = true;
+            createNotionBtn.title = 'Notion 토큰이 유효하지 않습니다. 설정을 확인해주세요.';
+          }
+        }
+      } else {
+        console.log('No Notion token found');
+        if (createNotionBtn) {
+          createNotionBtn.style.display = 'inline-block';
+          createNotionBtn.disabled = false;
+          createNotionBtn.title = 'Notion API 토큰을 설정해주세요.';
+        }
+      }
+    } catch (error) {
+      console.error('Error checking Notion status:', error);
     }
   }
 
@@ -529,6 +687,12 @@ class CareerManagerPopup {
       chrome.storage.local.get([key], (result) => {
         resolve(result[key]);
       });
+    });
+  }
+
+  async setStoredData(key, value) {
+    return new Promise((resolve) => {
+      chrome.storage.local.set({ [key]: value }, resolve);
     });
   }
 
@@ -731,13 +895,27 @@ class CareerManagerPopup {
   }
 
   openSettings() {
-    chrome.runtime.openOptionsPage();
+    // Navigate to settings in current tab/window
+    const settingsUrl = chrome.runtime.getURL('options.html');
+    
+    // Check if in popup mode or window mode
+    if (window.location.href.includes('popup.html') && window.outerWidth < 850) {
+      // In popup mode - open in new tab
+      chrome.tabs.create({ url: settingsUrl });
+    } else {
+      // In window mode - navigate in same window
+      window.location.href = settingsUrl;
+    }
   }
 
   openPricing() {
-    chrome.tabs.create({
-      url: chrome.runtime.getURL('pricing.html')
-    });
+    const pricingUrl = chrome.runtime.getURL('pricing.html');
+    
+    if (window.location.href.includes('popup.html') && window.outerWidth < 850) {
+      chrome.tabs.create({ url: pricingUrl });
+    } else {
+      window.location.href = pricingUrl;
+    }
   }
 
   async logout() {
@@ -1006,14 +1184,526 @@ class CareerManagerPopup {
     }
   }
 
-  handleNotionAuth() {
-    // Show message that Plus plan is required
-    this.showToast('Notion API는 Plus 요금제에서 사용할 수 있습니다.', 'info');
+  async openNotionIntegration() {
+    console.log('openNotionIntegration called');
     
-    // Open pricing page after a short delay
-    setTimeout(() => {
-      this.openPricing();
-    }, 1500);
+    // Check if user has Plus plan (disabled during development)
+    const isDevelopment = process.env.NODE_ENV === 'development' || process.env.DEBUG === 'true';
+    console.log('Development mode:', isDevelopment);
+    
+    if (!isDevelopment) {
+      const userPlan = await this.getStoredData('userPlan') || 'free';
+      if (userPlan !== 'plus') {
+        this.showToast('Notion 연동은 Plus 요금제에서 사용할 수 있습니다.', 'info');
+        setTimeout(() => {
+          this.openPricing();
+        }, 1500);
+        return;
+      }
+    } else {
+      console.log('개발 모드: Notion 연동이 모든 사용자에게 열려있습니다.');
+    }
+
+    // Check if elements exist
+    const mainConfig = document.getElementById('main-config');
+    const mainActions = document.getElementById('main-actions');
+    const notionSection = document.getElementById('notion-section');
+    
+    console.log('Elements found:', {
+      mainConfig: !!mainConfig,
+      mainActions: !!mainActions,
+      notionSection: !!notionSection
+    });
+
+    if (!notionSection) {
+      console.error('Notion section not found in DOM');
+      this.showToast('Notion 연동 섹션을 찾을 수 없습니다.', 'error');
+      return;
+    }
+
+    // Hide main dashboard and show Notion section
+    if (mainConfig) mainConfig.style.display = 'none';
+    if (mainActions) mainActions.style.display = 'none';
+    notionSection.style.display = 'block';
+    
+    console.log('Notion section should now be visible');
+    
+    // Setup Notion event listeners
+    this.setupNotionEventListeners();
+    
+    // Load saved Notion token if exists
+    await this.loadNotionSettings();
+  }
+
+  setupNotionEventListeners() {
+    const validateBtn = document.getElementById('validate-notion-btn');
+    if (validateBtn) {
+      validateBtn.addEventListener('click', () => {
+        this.validateNotionToken();
+      });
+    }
+
+    const syncToNotionBtn = document.getElementById('sync-to-notion-btn');
+    if (syncToNotionBtn) {
+      syncToNotionBtn.addEventListener('click', () => {
+        this.syncToNotion();
+      });
+    }
+
+    const createDatabaseBtn = document.getElementById('create-database-btn');
+    if (createDatabaseBtn) {
+      createDatabaseBtn.addEventListener('click', () => {
+        this.createNotionDatabase();
+      });
+    }
+
+    // Database option radio buttons
+    const databaseOptions = document.querySelectorAll('input[name="database-option"]');
+    databaseOptions.forEach(radio => {
+      radio.addEventListener('change', (e) => {
+        this.toggleDatabaseSelector(e.target.value);
+      });
+    });
+  }
+
+  async loadNotionSettings() {
+    const notionSettings = await this.getStoredData('notionSettings') || {};
+    
+    if (notionSettings.token) {
+      document.getElementById('notion-token-input').value = notionSettings.token;
+      await this.validateNotionToken(true); // Validate silently
+    }
+  }
+
+  async validateNotionToken(silent = false) {
+    const tokenInput = document.getElementById('notion-token-input');
+    const validateBtn = document.getElementById('validate-notion-btn');
+    const statusElement = document.getElementById('notion-connection-status');
+    
+    const token = tokenInput.value.trim();
+    if (!token) {
+      if (!silent) this.showToast('Notion API 토큰을 입력해주세요.', 'error');
+      return;
+    }
+
+    validateBtn.textContent = '검증 중...';
+    validateBtn.disabled = true;
+
+    try {
+      const response = await this.sendMessageToBackground({
+        action: 'validate_notion_token',
+        token: token
+      });
+
+      if (response.success && response.valid) {
+        statusElement.textContent = '연결됨';
+        statusElement.className = 'status-value connected';
+        
+        // Save token
+        await this.setStoredData('notionSettings', { token: token, userInfo: response.userInfo });
+        
+        // Load pages and show database selection
+        await this.loadNotionPages(token);
+        document.getElementById('notion-database-group').style.display = 'block';
+        document.getElementById('notion-actions').style.display = 'block';
+        
+        if (!silent) this.showToast('Notion 연결이 성공했습니다!', 'success');
+      } else {
+        statusElement.textContent = '연결 실패';
+        statusElement.className = 'status-value error';
+        if (!silent) this.showToast('유효하지 않은 Notion API 토큰입니다.', 'error');
+      }
+    } catch (error) {
+      console.error('Notion token validation error:', error);
+      statusElement.textContent = '오류';
+      statusElement.className = 'status-value error';
+      if (!silent) this.showToast('Notion 연결 중 오류가 발생했습니다.', 'error');
+    }
+
+    validateBtn.textContent = '검증';
+    validateBtn.disabled = false;
+  }
+
+  async loadNotionPages(token) {
+    try {
+      const response = await this.sendMessageToBackground({
+        action: 'get_notion_pages',
+        token: token
+      });
+
+      if (response.success) {
+        const pagesSelect = document.getElementById('notion-pages-select');
+        const parentPageSelect = document.getElementById('parent-page-select');
+        
+        // Clear existing options
+        pagesSelect.innerHTML = '<option value="">페이지를 선택하세요...</option>';
+        parentPageSelect.innerHTML = '<option value="">부모 페이지 선택...</option>';
+        
+        // Add pages
+        response.pages.forEach(page => {
+          if (page.object === 'page') {
+            const option1 = document.createElement('option');
+            option1.value = page.id;
+            option1.textContent = this.getNotionPageTitle(page);
+            pagesSelect.appendChild(option1);
+            
+            const option2 = document.createElement('option');
+            option2.value = page.id;
+            option2.textContent = this.getNotionPageTitle(page);
+            parentPageSelect.appendChild(option2);
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Error loading Notion pages:', error);
+      this.showToast('Notion 페이지를 불러오는 중 오류가 발생했습니다.', 'error');
+    }
+  }
+
+  getNotionPageTitle(page) {
+    if (page.properties && page.properties.title && page.properties.title.title) {
+      return page.properties.title.title.map(t => t.plain_text).join('') || 'Untitled';
+    }
+    return page.title || 'Untitled';
+  }
+
+  toggleDatabaseSelector(option) {
+    const existingSelector = document.getElementById('existing-database-selector');
+    const newSelector = document.getElementById('new-database-creator');
+    const createBtn = document.getElementById('create-database-btn');
+    const syncBtn = document.getElementById('sync-to-notion-btn');
+    
+    if (option === 'existing') {
+      existingSelector.style.display = 'block';
+      newSelector.style.display = 'none';
+      createBtn.style.display = 'none';
+      syncBtn.style.display = 'block';
+    } else {
+      existingSelector.style.display = 'none';
+      newSelector.style.display = 'block';
+      createBtn.style.display = 'block';
+      syncBtn.style.display = 'none';
+    }
+  }
+
+  async createNotionDatabase() {
+    const token = document.getElementById('notion-token-input').value.trim();
+    const parentPageId = document.getElementById('parent-page-select').value;
+    const title = document.getElementById('database-title-input').value.trim() || 'Career Events';
+    const createBtn = document.getElementById('create-database-btn');
+    
+    if (!parentPageId) {
+      this.showToast('부모 페이지를 선택해주세요.', 'error');
+      return;
+    }
+
+    createBtn.textContent = '생성 중...';
+    createBtn.disabled = true;
+
+    try {
+      const response = await this.sendMessageToBackground({
+        action: 'create_notion_database',
+        token: token,
+        parentPageId: parentPageId,
+        title: title
+      });
+
+      if (response.success) {
+        this.showToast('Notion 데이터베이스가 생성되었습니다!', 'success');
+        
+        // Save database info
+        const notionSettings = await this.getStoredData('notionSettings') || {};
+        notionSettings.databaseId = response.database.id;
+        notionSettings.databaseTitle = title;
+        await this.setStoredData('notionSettings', notionSettings);
+        
+        // Switch to sync mode
+        document.querySelector('input[name="database-option"][value="existing"]').checked = true;
+        this.toggleDatabaseSelector('existing');
+        
+        // Show sync button
+        document.getElementById('sync-to-notion-btn').style.display = 'block';
+      } else {
+        this.showToast('데이터베이스 생성에 실패했습니다: ' + response.error, 'error');
+      }
+    } catch (error) {
+      console.error('Error creating Notion database:', error);
+      this.showToast('데이터베이스 생성 중 오류가 발생했습니다.', 'error');
+    }
+
+    createBtn.textContent = '📝 데이터베이스 생성';
+    createBtn.disabled = false;
+  }
+
+  async syncToNotion() {
+    const token = document.getElementById('notion-token-input').value.trim();
+    const notionSettings = await this.getStoredData('notionSettings') || {};
+    let databaseId = notionSettings.databaseId;
+    
+    // If using existing database option, get from select
+    if (document.querySelector('input[name="database-option"][value="existing"]').checked) {
+      const selectedPageId = document.getElementById('notion-pages-select').value;
+      if (!selectedPageId) {
+        this.showToast('데이터베이스를 선택해주세요.', 'error');
+        return;
+      }
+      databaseId = selectedPageId;
+    }
+    
+    if (!databaseId) {
+      this.showToast('데이터베이스를 생성하거나 선택해주세요.', 'error');
+      return;
+    }
+
+    // Get latest collected events from storage (not this.events which might be stale)
+    const latestEvents = await this.getStoredData('latest_collected_events') || this.events || [];
+    
+    if (!latestEvents || latestEvents.length === 0) {
+      this.showToast('동기화할 이벤트가 없습니다. 먼저 데이터를 수집해주세요.', 'warning');
+      return;
+    }
+
+    console.log(`Syncing ${latestEvents.length} events to Notion...`);
+
+    // Show progress
+    document.getElementById('notion-config').style.display = 'none';
+    document.getElementById('notion-sync-progress').style.display = 'block';
+    
+    try {
+      // Convert events to Notion format
+      const notionEvents = latestEvents.map(event => ({
+        title: event.title,
+        startDate: event.start_time,
+        endDate: event.end_time,
+        location: event.location || '',
+        description: event.description || '',
+        type: this.categorizeEventForNotion(event)
+      }));
+
+      const response = await this.sendMessageToBackground({
+        action: 'sync_to_notion',
+        token: token,
+        databaseId: databaseId,
+        events: notionEvents
+      });
+
+      if (response.success) {
+        // Show results
+        document.getElementById('notion-sync-progress').style.display = 'none';
+        document.getElementById('notion-sync-results').style.display = 'block';
+        
+        document.getElementById('notion-success-count').textContent = response.syncResults.success.length;
+        document.getElementById('notion-failed-count').textContent = response.syncResults.failed.length;
+        
+        // Add database link if available
+        if (notionSettings.databaseTitle) {
+          const linkContainer = document.getElementById('notion-database-link');
+          linkContainer.innerHTML = `
+            <a href="https://notion.so/${databaseId.replace(/-/g, '')}" target="_blank">
+              📝 ${notionSettings.databaseTitle} 데이터베이스 보기
+            </a>
+          `;
+        }
+        
+        this.showToast(`${response.syncResults.success.length}개 이벤트가 Notion에 동기화되었습니다!`, 'success');
+        
+        // Auto-return to config after showing results
+        setTimeout(() => {
+          document.getElementById('notion-sync-results').style.display = 'none';
+          document.getElementById('notion-config').style.display = 'block';
+          this.showToast('새로운 동기화를 위해 준비되었습니다.', 'info');
+        }, 3000);
+      } else {
+        document.getElementById('notion-sync-progress').style.display = 'none';
+        document.getElementById('notion-config').style.display = 'block';
+        this.showToast('Notion 동기화에 실패했습니다: ' + response.error, 'error');
+      }
+    } catch (error) {
+      console.error('Error syncing to Notion:', error);
+      document.getElementById('notion-sync-progress').style.display = 'none';
+      document.getElementById('notion-config').style.display = 'block';
+      this.showToast('Notion 동기화 중 오류가 발생했습니다.', 'error');
+    }
+  }
+
+  categorizeEventForNotion(event) {
+    const title = (event.title || '').toLowerCase();
+    const description = (event.description || '').toLowerCase();
+    const combined = title + ' ' + description;
+    
+    if (combined.includes('강의') || combined.includes('lecture') || combined.includes('수업')) {
+      return 'lecture';
+    } else if (combined.includes('심사') || combined.includes('평가') || combined.includes('evaluation')) {
+      return 'evaluation';
+    } else if (combined.includes('멘토링') || combined.includes('코칭') || combined.includes('mentoring')) {
+      return 'mentoring';
+    }
+    
+    return 'other';
+  }
+
+  handleNotionAuth() {
+    // Legacy method - redirect to new integration
+    this.openNotionIntegration();
+  }
+
+  async createNotionDatabaseFromDashboard() {
+    console.log('createNotionDatabaseFromDashboard called');
+    try {
+      // Check if Notion is already configured
+      const notionSettings = await this.getStoredData('notionSettings');
+      console.log('Notion settings:', notionSettings);
+      
+      if (!notionSettings || !notionSettings.token) {
+        // Show toast and offer to go to settings
+        this.showToast('먼저 Notion API 토큰을 설정해주세요.', 'warning');
+        
+        // Add option to go to settings
+        const confirmResult = confirm('Notion API 토큰이 설정되지 않았습니다. 설정 페이지로 이동하시겠습니까?');
+        if (confirmResult) {
+          chrome.tabs.create({ url: chrome.runtime.getURL('options.html') });
+        }
+        return;
+      }
+
+      // Validate token first
+      const validateResponse = await this.sendMessageToBackground({
+        action: 'validate_notion_token',
+        token: notionSettings.token
+      });
+
+      if (!validateResponse.success || !validateResponse.valid) {
+        this.showToast('Notion 토큰이 유효하지 않습니다. 설정을 확인해주세요.', 'error');
+        
+        const confirmResult = confirm('Notion 토큰이 유효하지 않습니다. 설정 페이지로 이동하시겠습니까?');
+        if (confirmResult) {
+          chrome.tabs.create({ url: chrome.runtime.getURL('options.html') });
+        }
+        return;
+      }
+
+      // Get pages for selection
+      const pagesResponse = await this.sendMessageToBackground({
+        action: 'get_notion_pages',
+        token: notionSettings.token
+      });
+
+      if (!pagesResponse.success || !pagesResponse.pages.length) {
+        this.showToast('Notion 페이지를 불러올 수 없습니다.', 'error');
+        return;
+      }
+
+      // Show page selection modal
+      this.showNotionPageSelectionModal(pagesResponse.pages, notionSettings.token);
+
+    } catch (error) {
+      console.error('Error creating Notion database from dashboard:', error);
+      this.showToast('Notion 데이터베이스 생성 중 오류가 발생했습니다.', 'error');
+    }
+  }
+
+  showNotionPageSelectionModal(pages, token) {
+    const modalHTML = `
+      <div class="modal-overlay" id="notion-page-modal" style="display: flex;">
+        <div class="modal">
+          <div class="modal-header">
+            <h2 class="modal-title">📝 Notion 데이터베이스 생성</h2>
+          </div>
+          <div class="modal-body">
+            <div class="config-group">
+              <label class="config-label">부모 페이지 선택</label>
+              <select id="modal-parent-page-select" class="select-input">
+                <option value="">페이지를 선택하세요...</option>
+                ${pages.map(page => `
+                  <option value="${page.id}">${this.getNotionPageTitle(page)}</option>
+                `).join('')}
+              </select>
+              <div class="config-help">
+                <small>💡 <strong>권한 안내:</strong> 선택한 페이지에 Integration 'Carrinder'가 공유되어 있어야 합니다.</small>
+              </div>
+            </div>
+            <div class="config-group">
+              <label class="config-label">데이터베이스 제목</label>
+              <input type="text" id="modal-database-title" class="text-input" 
+                     value="강사활동 데이터베이스" placeholder="데이터베이스 제목을 입력하세요">
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-outline btn-modal" id="modal-cancel-btn">취소</button>
+            <button class="btn btn-primary btn-modal" id="modal-create-db-btn">데이터베이스 생성</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Add modal to DOM
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+    // Add event listeners
+    document.getElementById('modal-cancel-btn').addEventListener('click', () => {
+      document.getElementById('notion-page-modal').remove();
+    });
+
+    document.getElementById('modal-create-db-btn').addEventListener('click', async () => {
+      const parentPageId = document.getElementById('modal-parent-page-select').value;
+      const title = document.getElementById('modal-database-title').value.trim() || '강사활동 데이터베이스';
+      
+      if (!parentPageId) {
+        this.showToast('부모 페이지를 선택해주세요.', 'error');
+        return;
+      }
+
+      const createBtn = document.getElementById('modal-create-db-btn');
+      createBtn.textContent = '생성 중...';
+      createBtn.disabled = true;
+
+      try {
+        const response = await this.sendMessageToBackground({
+          action: 'create_notion_database',
+          token: token,
+          parentPageId: parentPageId,
+          title: title
+        });
+
+        if (response.success) {
+          // Save database info
+          const notionSettings = await this.getStoredData('notionSettings') || {};
+          notionSettings.databaseId = response.database.id;
+          notionSettings.databaseTitle = title;
+          await this.setStoredData('notionSettings', notionSettings);
+
+          this.showToast('Notion 데이터베이스가 생성되었습니다! 이제 동기화를 시작할 수 있습니다.', 'success');
+          document.getElementById('notion-page-modal').remove();
+          
+          // Refresh notion status to show new database
+          await this.checkNotionStatus();
+        } else {
+          console.error('Database creation failed:', response.error);
+          
+          // Check if it's a permission error
+          if (response.error && response.error.includes('페이지 접근 권한')) {
+            this.showToast(`권한 오류가 발생했습니다. 먼저 노션에서 해당 페이지에 Integration을 공유해주세요.\n\n${response.error}`, 'error');
+          } else {
+            this.showToast('데이터베이스 생성에 실패했습니다: ' + response.error, 'error');
+          }
+          
+          createBtn.textContent = '데이터베이스 생성';
+          createBtn.disabled = false;
+        }
+      } catch (error) {
+        console.error('Error creating database:', error);
+        this.showToast('데이터베이스 생성 중 오류가 발생했습니다.', 'error');
+        createBtn.textContent = '데이터베이스 생성';
+        createBtn.disabled = false;
+      }
+    });
+
+    // Close on overlay click
+    document.getElementById('notion-page-modal').addEventListener('click', (e) => {
+      if (e.target.id === 'notion-page-modal') {
+        document.getElementById('notion-page-modal').remove();
+      }
+    });
   }
 
   openInNewWindow() {
@@ -1031,14 +1721,15 @@ class CareerManagerPopup {
   }
 
   openHomePage() {
-    // Open home page in new tab
-    chrome.tabs.create({
-      url: chrome.runtime.getURL('home.html')
-    });
+    const homeUrl = chrome.runtime.getURL('home.html');
     
-    // Close current popup if it's a small popup
-    if (window.outerWidth <= 850) {
+    if (window.location.href.includes('popup.html') && window.outerWidth < 850) {
+      // In popup mode - open in new tab
+      chrome.tabs.create({ url: homeUrl });
       window.close();
+    } else {
+      // In window mode - navigate in same window
+      window.location.href = homeUrl;
     }
   }
 
@@ -1576,6 +2267,10 @@ class CareerManagerPopup {
       // Populate spreadsheets with data
       await this.populateSpreadsheets(createdSheets, processedEvents);
 
+      // Store latest collected events for Notion sync
+      await this.setStoredData('latest_collected_events', processedEvents);
+      console.log(`Stored ${processedEvents.length} events for potential Notion sync`);
+
       this.updateProgress(100, '완료!');
 
       // Show results
@@ -1850,6 +2545,9 @@ class CareerManagerPopup {
 
     if (progressElement) progressElement.style.display = 'none';
     if (resultsElement) resultsElement.style.display = 'block';
+    
+    // Keep the main dashboard visible instead of hiding it
+    document.querySelector('.collection-config').style.display = 'block';
     
     // Update stats
     if (collectedCountElement) {
@@ -2629,6 +3327,47 @@ class CareerManagerPopup {
     };
     
     modal.addEventListener('click', modal._clickOutsideHandler);
+    modal.addEventListener('click', modal._clickOutsideHandler);
+  }
+
+  startNewCollection() {
+    // Hide results and show main config
+    document.getElementById('collection-results').style.display = 'none';
+    document.querySelector('.collection-config').style.display = 'block';
+    document.getElementById('collection-progress').style.display = 'none';
+    
+    // Refresh the page state
+    this.updateUI();
+    this.showToast('새로운 데이터 수집을 시작할 수 있습니다.', 'info');
+  }
+
+  backToMainDashboard() {
+    // Hide results and show main config
+    document.getElementById('collection-results').style.display = 'none';
+    document.querySelector('.collection-config').style.display = 'block';
+    document.getElementById('collection-progress').style.display = 'none';
+    
+    // Refresh events and UI
+    this.loadEvents();
+    this.updateUI();
+  }
+
+  showToast(message, type = 'info') {
+    // Create toast element if it doesn't exist
+    let toastElement = document.getElementById('toast');
+    if (!toastElement) {
+      toastElement = document.createElement('div');
+      toastElement.id = 'toast';
+      toastElement.className = 'toast';
+      document.body.appendChild(toastElement);
+    }
+
+    toastElement.textContent = message;
+    toastElement.className = `toast ${type} show`;
+    
+    setTimeout(() => {
+      toastElement.classList.remove('show');
+    }, 3000);
   }
 }
 

@@ -1,0 +1,141 @@
+/* Language Toggle Styles */
+.language-toggle {
+  position: relative !important;
+  display: inline-block !important;
+  margin-left: 8px;
+  visibility: visible !important;
+  opacity: 1 !important;
+  z-index: 999 !important;
+}
+
+.language-btn {
+  display: flex !important;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  background: rgba(255, 255, 255, 0.2) !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  border-radius: 6px;
+  color: white !important;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 60px;
+  justify-content: center;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.language-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.language-icon {
+  font-size: 14px;
+}
+
+.language-text {
+  font-weight: 500;
+  font-size: 11px;
+}
+
+.language-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  background: white;
+  border: 1px solid #e1e5e9;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  min-width: 120px;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-10px);
+  transition: all 0.2s ease;
+  z-index: 1000;
+}
+
+.language-dropdown.show {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.language-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  color: #333;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.language-option:first-child {
+  border-radius: 8px 8px 0 0;
+}
+
+.language-option:last-child {
+  border-radius: 0 0 8px 8px;
+}
+
+.language-option:hover {
+  background-color: #f8f9fa;
+}
+
+.language-option .flag {
+  font-size: 16px;
+}
+
+/* Settings Page Language Toggle */
+.settings .language-toggle .language-btn {
+  background: #f8f9fa;
+  border: 1px solid #e1e5e9;
+  color: #333;
+}
+
+.settings .language-toggle .language-btn:hover {
+  background: #e9ecef;
+  border-color: #d1d5db;
+}
+
+/* Home Page Language Toggle */
+.home-page .language-toggle {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+}
+
+/* Dashboard/Popup Language Toggle */
+.header-buttons .language-toggle {
+  margin-left: 0;
+  margin-right: 8px;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .language-toggle {
+    margin-left: 4px;
+  }
+  
+  .language-btn {
+    padding: 4px 8px;
+    min-width: 50px;
+  }
+  
+  .language-text {
+    font-size: 10px;
+  }
+  
+  .language-dropdown {
+    min-width: 100px;
+  }
+  
+  .language-option {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+}

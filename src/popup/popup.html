@@ -6,21 +6,25 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Career Manager</title>
   <link rel="stylesheet" href="popup.css">
+  <link rel="stylesheet" href="../styles/language-toggle.css">
 </head>
 
 <body>
   <div class="container">
     <header class="header">
       <div class="header-left">
-        <h1 class="title">Carrinder - Career Manager</h1>
+        <h1 class="title" data-i18n="header.title">Carrinder - Career Manager</h1>
         <div class="sync-status" id="sync-status">
           <span class="status-indicator" id="status-indicator"></span>
-          <span class="status-text" id="status-text">Not synced</span>
+          <span class="status-text" id="status-text" data-i18n="header.not_synced">Not synced</span>
         </div>
       </div>
       <div class="header-buttons">
-        <button class="btn-icon" id="home-btn" title="홈으로 가기">🏠</button>
-        <button class="btn-expand" id="expand-btn" title="새 창에서 열기">⛶</button>
+        <div id="language-toggle-container">
+          <!-- Language toggle will be inserted here -->
+        </div>
+        <button class="btn-icon" id="home-btn" data-i18n-title="header.home_tooltip" title="홈으로 가기">🏠</button>
+        <button class="btn-expand" id="expand-btn" data-i18n-title="header.expand_tooltip" title="새 창에서 열기">⛶</button>
       </div>
     </header>
 
@@ -28,13 +32,66 @@
       <div class="auth-section" id="auth-section">
         <div class="welcome-section">
           <div class="welcome-message">
-            <h2 class="service-welcome">경력관리 자동화 서비스 Carrinder에 오신 것을 환영합니다!</h2>
-            <p class="service-description">Google Calendar의 경력 활동을 자동으로 분석하고 스프레드시트로 정리해드립니다.</p>
+            <h2 class="service-welcome" data-i18n="auth.welcome_title">경력관리 자동화 서비스 Carrinder에 오신 것을 환영합니다!</h2>
+            <p class="service-description" data-i18n="auth.welcome_description">Google Calendar의 경력 활동을 자동으로 분석하고 스프레드시트로 정리해드립니다.</p>
+          </div>
+
+          <!-- Service Features Section -->
+          <div class="service-features">
+            <h3 class="features-title" data-i18n="home.features_title">주요 기능</h3>
+            <div class="features-grid">
+              <div class="feature-item">
+                <div class="feature-icon">📅</div>
+                <div class="feature-content">
+                  <h4 data-i18n="home.google_calendar_integration">구글 캘린더 연동</h4>
+                  <p data-i18n="home.google_calendar_desc">구글 캘린더에서 경력 활동을 자동으로 수집하고 분석합니다.</p>
+                </div>
+              </div>
+              <div class="feature-item">
+                <div class="feature-icon">🎯</div>
+                <div class="feature-content">
+                  <h4 data-i18n="home.smart_classification">스마트 분류</h4>
+                  <p data-i18n="home.smart_classification_desc">키워드 기반으로 강의, 심사, 멘토링 활동을 자동 분류합니다.</p>
+                </div>
+              </div>
+              <div class="feature-item">
+                <div class="feature-icon">📊</div>
+                <div class="feature-content">
+                  <h4 data-i18n="home.auto_spreadsheet">스프레드시트 자동 생성</h4>
+                  <p data-i18n="home.auto_spreadsheet_desc">구글 드라이브에 경력별로 정리된 스프레드시트를 자동으로 생성합니다.</p>
+                </div>
+              </div>
+              <div class="feature-item premium-feature">
+                <div class="feature-icon">⚡</div>
+                <div class="feature-content">
+                  <h4>
+                    <span data-i18n="home.auto_sync">자동 동기화</span>
+                    <span class="plan-badge">💎 Plus</span>
+                  </h4>
+                  <p data-i18n="home.auto_sync_desc">Plus 요금제에서는 설정한 주기로 자동 동기화하여 항상 최신 데이터를 유지합니다.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Basic Plan Features -->
+          <div class="plan-summary">
+            <h3 class="plan-title">
+              <span data-i18n="home.basic_plan">Basic 플랜</span>
+              <span class="plan-price" data-i18n="home.basic_price">FREE</span>
+            </h3>
+            <ul class="plan-features">
+              <li>✅ 구글 캘린더 데이터 추출</li>
+              <li>✅ 구글 드라이브 스프레드시트 저장</li>
+              <li>✅ 경력 이벤트 분류 (강사/심사/멘토링)</li>
+              <li>✅ 수동 데이터 수집</li>
+              <li>✅ 커스텀 기간 설정</li>
+            </ul>
           </div>
 
           <div class="welcome-header">
-            <h3 class="welcome-title">Google 계정으로 시작하기</h3>
-            <p class="welcome-description">Google 로그인으로 Carrinder에 가입하고 Calendar/Drive를 자동 연결하세요.</p>
+            <h3 class="welcome-title" data-i18n="auth.login_title">Google 계정으로 시작하기</h3>
+            <p class="welcome-description" data-i18n="auth.login_description">Google 로그인으로 Carrinder에 가입하고 Calendar/Drive를 자동 연결하세요.</p>
           </div>
 
           <div class="login-button-container">
@@ -49,14 +106,14 @@
                 <path fill="#EA4335"
                   d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
               </svg>
-              Google로 시작하기
+              <span data-i18n="auth.google_login">Google로 시작하기</span>
             </button>
           </div>
         </div>
 
         <div class="connection-status" id="connection-status" style="display: none;">
           <div class="status-header">
-            <h3 class="status-title">연결 상태</h3>
+            <h3 class="status-title" data-i18n="auth.connection_status">연결 상태</h3>
           </div>
 
           <div class="status-list">
@@ -64,7 +121,7 @@
               <div class="status-icon" id="calendar-status-icon">⏳</div>
               <div class="status-info">
                 <span class="status-label">Google Calendar</span>
-                <span class="status-text" id="google-auth-status">연결 중...</span>
+                <span class="status-text" id="google-auth-status" data-i18n="auth.calendar_connecting">연결 중...</span>
               </div>
             </div>
 
@@ -72,7 +129,7 @@
               <div class="status-icon" id="drive-status-icon">⏳</div>
               <div class="status-info">
                 <span class="status-label">Google Drive</span>
-                <span class="status-text" id="drive-auth-status">대기 중...</span>
+                <span class="status-text" id="drive-auth-status" data-i18n="auth.drive_waiting">대기 중...</span>
               </div>
             </div>
 
@@ -80,16 +137,16 @@
               <div class="status-icon" id="registration-status-icon">⏳</div>
               <div class="status-info">
                 <span class="status-label">Carrinder 계정</span>
-                <span class="status-text" id="registration-status">대기 중...</span>
+                <span class="status-text" id="registration-status" data-i18n="auth.registration_waiting">대기 중...</span>
               </div>
             </div>
           </div>
 
           <div class="completion-message" id="completion-message" style="display: none;">
             <div class="success-icon">🎉</div>
-            <h3 class="success-title">설정 완료!</h3>
-            <p class="success-text">이제 경력 데이터를 수집할 수 있습니다.</p>
-            <button class="btn btn-primary btn-next" id="next-to-dashboard-btn">시작하기</button>
+            <h3 class="success-title" data-i18n="auth.setup_complete">설정 완료!</h3>
+            <p class="success-text" data-i18n="auth.setup_complete_message">이제 경력 데이터를 수집할 수 있습니다.</p>
+            <button class="btn btn-primary btn-next" id="next-to-dashboard-btn" data-i18n="auth.start_button">시작하기</button>
           </div>
         </div>
       </div>
@@ -97,16 +154,16 @@
       <div class="dashboard" id="dashboard" style="display: none;">
         <!-- Data Collection Configuration -->
         <div class="collection-config">
-          <h2 class="section-title">데이터 수집 설정</h2>
+          <h2 class="section-title" data-i18n="dashboard.data_collection_title">데이터 수집 설정</h2>
 
           <!-- Period Selection -->
           <div class="config-group">
-            <label class="config-label">수집 기간</label>
+            <label class="config-label" data-i18n="dashboard.period_label">수집 기간</label>
             <div class="period-selection">
               <select id="period-type" class="select-input">
-                <option value="year">연도별</option>
-                <option value="month">월별</option>
-                <option value="custom">커스텀 기간</option>
+                <option value="year" data-i18n="dashboard.period_year">연도별</option>
+                <option value="month" data-i18n="dashboard.period_month">월별</option>
+                <option value="custom" data-i18n="dashboard.period_custom">커스텀 기간</option>
               </select>
 
               <div id="year-selector" class="date-selector">
@@ -118,14 +175,14 @@
               <div id="month-selector" class="date-selector" style="display: none;">
                 <div class="month-range-selector">
                   <div class="month-input-group">
-                    <label class="date-label">시작 월</label>
+                    <label class="date-label" data-i18n="dashboard.start_month">시작 월</label>
                     <select id="start-month-select" class="select-input">
                       <!-- Options will be populated dynamically -->
                     </select>
                   </div>
                   <span class="date-separator">~</span>
                   <div class="month-input-group">
-                    <label class="date-label">종료 월</label>
+                    <label class="date-label" data-i18n="dashboard.end_month">종료 월</label>
                     <select id="end-month-select" class="select-input">
                       <!-- Options will be populated dynamically -->
                     </select>
@@ -133,17 +190,17 @@
                 </div>
                 <div class="period-warning" id="period-warning" style="display: none;">
                   <span class="warning-icon">⚠️</span>
-                  <span class="warning-text">최대 1년까지 선택 가능합니다</span>
+                  <span class="warning-text" data-i18n="dashboard.period_warning">최대 1년까지 선택 가능합니다</span>
                 </div>
               </div>
 
               <div id="custom-selector" class="date-selector custom-range" style="display: none;">
                 <div class="date-range-group">
-                  <label class="date-label">시작 날짜</label>
+                  <label class="date-label" data-i18n="dashboard.start_date">시작 날짜</label>
                   <input type="date" id="start-date" class="date-input" />
                 </div>
                 <div class="date-range-group">
-                  <label class="date-label">종료 날짜</label>
+                  <label class="date-label" data-i18n="dashboard.end_date">종료 날짜</label>
                   <input type="date" id="end-date" class="date-input" />
                 </div>
               </div>
@@ -152,81 +209,81 @@
 
           <!-- Career Type Selection -->
           <div class="config-group">
-            <label class="config-label">직업군 선택</label>
+            <label class="config-label" data-i18n="dashboard.career_type_label">직업군 선택</label>
             <div class="career-types">
               <label class="checkbox-item">
                 <input type="checkbox" id="instructor-type" checked>
                 <span class="checkmark"></span>
-                강사 활동 (강의, 워크샵, 세미나)
+                <span data-i18n="dashboard.instructor_type">강사 활동 (강의, 워크샵, 세미나)</span>
               </label>
               <label class="checkbox-item">
                 <input type="checkbox" id="judge-type" checked>
                 <span class="checkmark"></span>
-                심사 활동 (평가, 심사, 검토)
+                <span data-i18n="dashboard.judge_type">심사 활동 (평가, 심사, 검토)</span>
               </label>
               <label class="checkbox-item">
                 <input type="checkbox" id="mentor-type" checked>
                 <span class="checkmark"></span>
-                멘토링 활동 (상담, 지도, 코칭)
+                <span data-i18n="dashboard.mentor_type">멘토링 활동 (상담, 지도, 코칭)</span>
               </label>
               <label class="checkbox-item">
                 <input type="checkbox" id="other-type">
                 <span class="checkmark"></span>
-                기타 커리어 활동
+                <span data-i18n="dashboard.other_type">기타 커리어 활동</span>
               </label>
             </div>
           </div>
 
           <!-- Keyword Filter -->
           <div class="config-group">
-            <label class="config-label">키워드 필터 (선택사항)</label>
-            <input type="text" id="keyword-filter" class="text-input" placeholder="예: 개발, 디자인, 마케팅 (쉼표로 구분)">
-            <small class="help-text">특정 키워드가 포함된 이벤트만 수집합니다</small>
+            <label class="config-label" data-i18n="dashboard.keyword_filter_label">키워드 필터 (선택사항)</label>
+            <input type="text" id="keyword-filter" class="text-input" data-i18n-placeholder="dashboard.keyword_filter_placeholder" placeholder="예: 개발, 디자인, 마케팅 (쉼표로 구분)">
+            <small class="help-text" data-i18n="dashboard.keyword_filter_help">특정 키워드가 포함된 이벤트만 수집합니다</small>
           </div>
 
           <!-- Drive Folder Selection -->
           <div class="config-group">
-            <label class="config-label">저장 위치</label>
+            <label class="config-label" data-i18n="dashboard.storage_location">저장 위치</label>
             <div class="folder-selection">
-              <button class="btn btn-outline" id="select-folder-btn">📁 구글 드라이브 폴더 선택</button>
+              <button class="btn btn-outline" id="select-folder-btn" data-i18n="dashboard.select_folder">📁 구글 드라이브 폴더 선택</button>
               <div class="selected-folder" id="selected-folder">
-                <span class="folder-path">루트 폴더</span>
+                <span class="folder-path" data-i18n="dashboard.root_folder">루트 폴더</span>
               </div>
             </div>
           </div>
 
           <!-- Spreadsheet Selection -->
           <div class="config-group">
-            <label class="config-label">스프레드시트 생성 방식</label>
+            <label class="config-label" data-i18n="dashboard.spreadsheet_creation">스프레드시트 생성 방식</label>
             <div class="spreadsheet-config">
               <div class="spreadsheet-option">
                 <label class="radio-item">
                   <input type="radio" name="spreadsheet-type" value="new" checked>
-                  새 스프레드시트 생성
+                  <span data-i18n="dashboard.new_spreadsheet">새 스프레드시트 생성</span>
                 </label>
               </div>
               <div class="spreadsheet-option">
                 <label class="radio-item">
                   <input type="radio" name="spreadsheet-type" value="existing">
-                  기존 스프레드시트에 새 탭 추가
+                  <span data-i18n="dashboard.existing_spreadsheet">기존 스프레드시트에 새 탭 추가</span>
                 </label>
-                <button class="btn btn-outline btn-small" id="select-spreadsheet-btn" disabled>📊 스프레드시트 선택</button>
+                <button class="btn btn-outline btn-small" id="select-spreadsheet-btn" disabled data-i18n="dashboard.select_spreadsheet">📊 스프레드시트 선택</button>
               </div>
               <div class="selected-spreadsheet" id="selected-spreadsheet" style="display: none;">
-                <span class="spreadsheet-info">선택된 스프레드시트가 없습니다.</span>
+                <span class="spreadsheet-info" data-i18n="dashboard.no_spreadsheet_selected">선택된 스프레드시트가 없습니다.</span>
               </div>
             </div>
           </div>
 
           <!-- File Naming Configuration -->
           <div class="config-group">
-            <label class="config-label">파일명 설정</label>
+            <label class="config-label" data-i18n="dashboard.filename_settings">파일명 설정</label>
             <div class="filename-config">
               <div class="filename-option">
                 <label class="radio-item">
                   <input type="radio" name="filename-type" value="template" checked>
                   <span class="radio-mark"></span>
-                  템플릿 사용
+                  <span data-i18n="dashboard.use_template">템플릿 사용</span>
                 </label>
                 <select id="filename-template" class="select-input">
                   <option value="{role}_{period}">{역할}_{기간}</option>
@@ -239,12 +296,12 @@
                 <label class="radio-item">
                   <input type="radio" name="filename-type" value="custom">
                   <span class="radio-mark"></span>
-                  직접 입력
+                  <span data-i18n="dashboard.custom_input">직접 입력</span>
                 </label>
-                <input type="text" id="custom-filename" class="text-input" placeholder="파일명을 입력하세요" disabled>
+                <input type="text" id="custom-filename" class="text-input" data-i18n-placeholder="dashboard.filename_placeholder" placeholder="파일명을 입력하세요" disabled>
               </div>
               <div class="filename-preview">
-                <span class="preview-label">미리보기:</span>
+                <span class="preview-label" data-i18n="dashboard.filename_preview">미리보기:</span>
                 <span class="preview-text" id="filename-preview">강사활동_2025</span>
               </div>
             </div>
@@ -252,50 +309,168 @@
 
           <!-- Collection Button -->
           <div class="collection-actions">
-            <button class="btn btn-primary btn-large" id="collect-data-btn">
-              📊 데이터 수집 및 시트 생성
+            <button class="btn btn-primary btn-large" id="collect-data-btn" data-i18n="dashboard.collect_data">
+              📊 데이터 수집 및 구글 시트 생성
             </button>
+            <button class="btn btn-secondary btn-large btn-with-badge" id="create-notion-db-btn" disabled>
+              <span data-i18n="dashboard.create_notion_db">📝 Notion 데이터베이스 생성</span>
+              <span class="btn-beta-badge" data-i18n="common.coming_in_full_version">정식 버전에서 사용 가능</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Notion Integration Section -->
+        <div class="config-section notion-section" id="notion-section" style="display: none;">
+          <div class="section-header-with-badge">
+            <h2 class="section-title" data-i18n="notion.title">📝 Notion 연동</h2>
+            <span class="beta-badge" data-i18n="common.coming_in_full_version">정식 버전에서 사용 가능</span>
+          </div>
+
+          <div class="notion-status" id="notion-status">
+            <div class="status-item">
+              <span class="status-label" data-i18n="notion.connection_status">연결 상태:</span>
+              <span class="status-value" id="notion-connection-status" data-i18n="notion.not_connected">연결되지 않음</span>
+            </div>
+          </div>
+
+          <div class="notion-config" id="notion-config">
+            <div class="config-group">
+              <label class="config-label" data-i18n="notion.api_token">Notion API 토큰</label>
+              <div class="input-group">
+                <input type="password" id="notion-token-input" class="text-input" data-i18n-placeholder="notion.token_placeholder" placeholder="secret_..." disabled />
+                <button class="btn btn-outline btn-small btn-with-badge" id="validate-notion-btn" disabled>
+                  <span data-i18n="notion.validate">검증</span>
+                  <span class="btn-beta-badge" data-i18n="common.coming_in_full_version">정식 버전에서 사용 가능</span>
+                </button>
+              </div>
+              <div class="config-help">
+                <small>Notion에서 Internal Integration을 생성하고 API 토큰을 입력하세요</small>
+              </div>
+            </div>
+
+            <div class="config-group" id="notion-database-group" style="display: none;">
+              <label class="config-label" data-i18n="notion.database_selection">데이터베이스 선택</label>
+              <div class="database-options">
+                <div class="radio-group">
+                  <label class="radio-label">
+                    <input type="radio" name="database-option" value="existing" checked />
+                    <span data-i18n="notion.use_existing">기존 데이터베이스 사용</span>
+                  </label>
+                  <label class="radio-label">
+                    <input type="radio" name="database-option" value="create" />
+                    <span data-i18n="notion.create_new">새 데이터베이스 생성</span>
+                  </label>
+                </div>
+
+                <div id="existing-database-selector" class="database-selector">
+                  <select id="notion-pages-select" class="select-input">
+                    <option value="" data-i18n="notion.select_page">페이지를 선택하세요...</option>
+                  </select>
+                  <div class="config-help">
+                    <small>데이터베이스가 생성될 부모 페이지를 선택하세요</small>
+                  </div>
+                </div>
+
+                <div id="new-database-creator" class="database-selector" style="display: none;">
+                  <div class="input-group">
+                    <select id="parent-page-select" class="select-input">
+                      <option value="" data-i18n="notion.select_parent_page">부모 페이지 선택...</option>
+                    </select>
+                  </div>
+                  <div class="input-group">
+                    <input type="text" id="database-title-input" class="text-input" data-i18n-placeholder="notion.database_name"
+                      data-i18n-value="notion.default_db_name" placeholder="데이터베이스 이름" value="Career Events" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="notion-actions" id="notion-actions" style="display: none;">
+              <button class="btn btn-primary btn-with-badge" id="sync-to-notion-btn" disabled>
+                <span data-i18n="notion.sync_to_notion">📝 Notion에 동기화</span>
+                <span class="btn-beta-badge" data-i18n="common.coming_in_full_version">정식 버전에서 사용 가능</span>
+              </button>
+              <button class="btn btn-outline btn-with-badge" id="create-database-btn" style="display: none;" disabled>
+                <span data-i18n="notion.create_database">📝 데이터베이스 생성</span>
+                <span class="btn-beta-badge" data-i18n="common.coming_in_full_version">정식 버전에서 사용 가능</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="notion-sync-progress" id="notion-sync-progress" style="display: none;">
+            <h3 data-i18n="notion.syncing">Notion 동기화 중...</h3>
+            <div class="progress-bar">
+              <div class="progress-fill" id="notion-progress-fill" style="width: 0%"></div>
+            </div>
+            <div class="progress-status" id="notion-progress-status" data-i18n="notion.sending_data">데이터 전송 중...</div>
+          </div>
+
+          <div class="notion-sync-results" id="notion-sync-results" style="display: none;">
+            <h3 data-i18n="notion.sync_complete">동기화 완료!</h3>
+            <div class="results-stats">
+              <div class="result-item">
+                <span class="result-number" id="notion-success-count">0</span>
+                <span class="result-label" data-i18n="notion.success_count">개 성공</span>
+              </div>
+              <div class="result-item">
+                <span class="result-number" id="notion-failed-count">0</span>
+                <span class="result-label" data-i18n="notion.failed_count">개 실패</span>
+              </div>
+            </div>
+            <div class="notion-database-link" id="notion-database-link">
+              <!-- Database link will be added here -->
+            </div>
           </div>
         </div>
 
         <!-- Main Dashboard Actions -->
         <div class="main-actions">
           <div class="actions-row">
-            <button class="btn btn-secondary" id="sync-btn">🔄 캘린더 동기화</button>
-            <button class="btn btn-outline" id="settings-btn">⚙️ 설정</button>
-            <button class="btn btn-outline" id="reconnect-btn">🔗 서비스 재연결</button>
+            <button class="btn btn-secondary" id="sync-btn" data-i18n="dashboard.sync_calendar">🔄 캘린더 동기화</button>
+            <button class="btn btn-outline" id="settings-btn" data-i18n="common.settings">⚙️ 설정</button>
+            <button class="btn btn-outline" id="reconnect-btn" data-i18n="dashboard.reconnect_services">🔗 서비스 재연결</button>
           </div>
           <div class="actions-row">
-            <button class="btn btn-outline" id="pricing-btn">💎 요금제</button>
+            <button class="btn btn-outline btn-with-badge" id="pricing-btn" disabled>
+              <span data-i18n="dashboard.pricing">💎 요금제</span>
+              <span class="btn-beta-badge" data-i18n="common.coming_in_full_version">정식 버전에서 사용 가능</span>
+            </button>
+            <button class="btn btn-outline btn-with-badge" id="notion-btn" disabled>
+              <span data-i18n="dashboard.notion_integration">📝 Notion 연동</span>
+              <span class="btn-beta-badge" data-i18n="common.coming_in_full_version">정식 버전에서 사용 가능</span>
+            </button>
           </div>
         </div>
 
         <!-- Collection Progress -->
         <div class="collection-progress" id="collection-progress" style="display: none;">
-          <h3>데이터 수집 중...</h3>
+          <h3 data-i18n="dashboard.collecting_data">데이터 수집 중...</h3>
           <div class="progress-bar">
             <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
           </div>
-          <div class="progress-status" id="progress-status">캘린더 데이터 가져오는 중...</div>
+          <div class="progress-status" id="progress-status" data-i18n="dashboard.fetching_calendar">캘린더 데이터 가져오는 중...</div>
         </div>
 
         <!-- Results Summary -->
         <div class="collection-results" id="collection-results" style="display: none;">
-          <h3>수집 완료!</h3>
+          <h3 data-i18n="dashboard.collection_complete">수집 완료!</h3>
           <div class="results-stats">
             <div class="result-item">
               <span class="result-number" id="collected-count">0</span>
-              <span class="result-label">개 이벤트 수집</span>
+              <span class="result-label" data-i18n="dashboard.events_collected">개 이벤트 수집</span>
             </div>
             <div class="result-item">
               <span class="result-number" id="sheets-created">0</span>
-              <span class="result-label">개 시트 생성</span>
+              <span class="result-label" data-i18n="dashboard.sheets_created">개 시트 생성</span>
             </div>
           </div>
           <div class="created-sheets" id="created-sheets">
             <!-- Generated sheet links will be added here -->
           </div>
-          <button class="btn btn-outline" id="new-collection-btn">메인 메뉴로 돌아가기</button>
+          <div class="collection-actions">
+            <button class="btn btn-primary" id="new-collection-btn" data-i18n="dashboard.collect_again">📊 다시 수집하기</button>
+            <button class="btn btn-outline" id="back-to-main-btn" data-i18n="dashboard.back_to_main">메인 메뉴로 돌아가기</button>
+          </div>
         </div>
       </div>
     </main>
@@ -306,16 +481,16 @@
     <div class="modal">
       <div class="modal-header">
         <div class="success-icon">✓</div>
-        <h2 class="modal-title">연결 성공!</h2>
+        <h2 class="modal-title" data-i18n="modals.connection_success">연결 성공!</h2>
       </div>
       <div class="modal-body">
-        <p class="modal-message" id="modal-message">Google 계정이 성공적으로 연결되었습니다.</p>
+        <p class="modal-message" id="modal-message" data-i18n="modals.google_account_connected">Google 계정이 성공적으로 연결되었습니다.</p>
         <div class="connected-services" id="connected-services">
           <!-- Connected services will be shown here -->
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-primary btn-modal" id="modal-continue-btn">메인 페이지로 이동</button>
+        <button class="btn btn-primary btn-modal" id="modal-continue-btn" data-i18n="modals.continue_to_main">메인 페이지로 이동</button>
       </div>
     </div>
   </div>
@@ -324,25 +499,25 @@
   <div class="modal-overlay" id="folder-modal" style="display: none;">
     <div class="modal modal-large">
       <div class="modal-header">
-        <h2 class="modal-title">📁 구글 드라이브 폴더 선택</h2>
+        <h2 class="modal-title" data-i18n="modals.select_drive_folder">📁 구글 드라이브 폴더 선택</h2>
       </div>
       <div class="modal-body">
         <div class="folder-navigation">
           <div class="breadcrumb" id="folder-breadcrumb">
-            <span class="breadcrumb-item" data-folder-id="root">루트 폴더</span>
+            <span class="breadcrumb-item" data-folder-id="root" data-i18n="dashboard.root_folder">루트 폴더</span>
           </div>
           <div class="folder-actions">
-            <button class="btn btn-outline btn-small" id="create-folder-btn">📁 새 폴더 만들기</button>
-            <button class="btn btn-outline btn-small" id="refresh-folders-btn">🔄 새로고침</button>
+            <button class="btn btn-outline btn-small" id="create-folder-btn" data-i18n="modals.new_folder">📁 새 폴더 만들기</button>
+            <button class="btn btn-outline btn-small" id="refresh-folders-btn" data-i18n="modals.refresh">🔄 새로고침</button>
           </div>
         </div>
         <div class="folder-list" id="folder-list">
-          <div class="loading-folders">폴더 목록을 불러오는 중...</div>
+          <div class="loading-folders" data-i18n="modals.loading_folders">폴더 목록을 불러오는 중...</div>
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-outline btn-modal" id="folder-cancel-btn">취소</button>
-        <button class="btn btn-primary btn-modal" id="folder-select-btn">선택</button>
+        <button class="btn btn-outline btn-modal" id="folder-cancel-btn" data-i18n="common.cancel">취소</button>
+        <button class="btn btn-primary btn-modal" id="folder-select-btn" data-i18n="modals.select">선택</button>
       </div>
     </div>
   </div>
@@ -351,17 +526,17 @@
   <div class="modal-overlay" id="create-folder-modal" style="display: none;">
     <div class="modal modal-small">
       <div class="modal-header">
-        <h2 class="modal-title">새 폴더 만들기</h2>
+        <h2 class="modal-title" data-i18n="modals.create_new_folder">새 폴더 만들기</h2>
       </div>
       <div class="modal-body">
         <div class="form-group">
-          <label class="form-label">폴더 이름</label>
-          <input type="text" id="new-folder-name" class="text-input" placeholder="폴더 이름을 입력하세요">
+          <label class="form-label" data-i18n="modals.folder_name">폴더 이름</label>
+          <input type="text" id="new-folder-name" class="text-input" data-i18n-placeholder="modals.folder_name_placeholder" placeholder="폴더 이름을 입력하세요">
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-outline btn-modal" id="create-folder-cancel-btn">취소</button>
-        <button class="btn btn-primary btn-modal" id="create-folder-confirm-btn">생성</button>
+        <button class="btn btn-outline btn-modal" id="create-folder-cancel-btn" data-i18n="common.cancel">취소</button>
+        <button class="btn btn-primary btn-modal" id="create-folder-confirm-btn" data-i18n="modals.create">생성</button>
       </div>
     </div>
   </div>
@@ -370,20 +545,21 @@
   <div class="modal-overlay" id="spreadsheet-modal" style="display: none;">
     <div class="modal modal-large">
       <div class="modal-header">
-        <h2 class="modal-title">📊 스프레드시트 선택</h2>
+        <h2 class="modal-title" data-i18n="modals.select_spreadsheet">📊 스프레드시트 선택</h2>
       </div>
       <div class="modal-body">
         <div class="spreadsheet-list" id="spreadsheet-list">
-          <div class="loading-spreadsheets">스프레드시트 목록을 불러오는 중...</div>
+          <div class="loading-spreadsheets" data-i18n="modals.loading_spreadsheets">스프레드시트 목록을 불러오는 중...</div>
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-outline btn-modal" id="spreadsheet-cancel-btn">취소</button>
-        <button class="btn btn-primary btn-modal" id="spreadsheet-select-btn">선택</button>
+        <button class="btn btn-outline btn-modal" id="spreadsheet-cancel-btn" data-i18n="common.cancel">취소</button>
+        <button class="btn btn-primary btn-modal" id="spreadsheet-select-btn" data-i18n="modals.select">선택</button>
       </div>
     </div>
   </div>
 
+  <script src="../utils/i18n.js"></script>
   <script src="popup.js"></script>
 </body>
 

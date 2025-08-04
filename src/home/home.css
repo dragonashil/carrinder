@@ -17,6 +17,14 @@ body {
   max-width: 800px;
   margin: 0 auto;
   padding: 20px;
+  position: relative;
+}
+
+.language-toggle-container {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 10;
 }
 
 /* Hero Section */
@@ -28,6 +36,45 @@ body {
   border-radius: 12px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   margin-bottom: 40px;
+}
+
+/* Beta Notice Banner */
+.beta-notice-banner {
+  background: #ff6b35;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  margin-bottom: 20px;
+  display: inline-block;
+}
+
+.beta-notice-text {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Beta button styling */
+.btn-with-badge {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 24px !important;
+}
+
+.btn-beta-badge {
+  background: #ff6b35;
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
 }
 
 .hero-content {

@@ -173,9 +173,8 @@ class CarrinderAuth {
       button.textContent = '로그인 중...';
       button.disabled = true;
 
-      // Simulate Google OAuth flow
-      // In real implementation, use chrome.identity.getAuthToken or Google OAuth2
-      await this.simulateGoogleLogin();
+      // Use Chrome Extension identity API for real Google OAuth
+      await this.authenticateWithGoogle();
       
       this.showToast('Google 로그인 성공!', 'success');
       this.goToStep(3);
@@ -187,6 +186,62 @@ class CarrinderAuth {
       const button = document.getElementById('google-login-btn');
       button.textContent = 'Google로 계속하기';
       button.disabled = false;
+    }
+  }
+
+  async authenticateWithGoogle() {
+    try {
+      // Get OAuth token using Chrome Extension identity API
+      const token = await new Promise((resolve, reject) => {
+        chrome.identity.getAuthToken({ 
+          interactive: true,
+          scopes: [
+            'https://www.googleapis.com/auth/userinfo.profile',
+            'https://www.googleapis.com/auth/userinfo.email'
+          ]
+        }, (token) => {
+          if (chrome.runtime.lastError) {
+            reject(new Error(chrome.runtime.lastError.message));
+          } else {
+            resolve(token);
+          }
+        });
+      });
+
+      if (!token) {
+        throw new Error('Failed to get authentication token');
+      }
+
+      // Get user profile information from Google
+      const response = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch user profile');
+      }
+
+      const userInfo = await response.json();
+      
+      // Store user data
+      this.googleUser = {
+        id: userInfo.id,
+        name: userInfo.name || userInfo.given_name || 'Unknown User',
+        email: userInfo.email,
+        picture: userInfo.picture || 'https://via.placeholder.com/60x60/333/fff?text=' + (userInfo.name ? userInfo.name.charAt(0) : 'U')
+      };
+
+      // Populate user info form with real Google account data
+      document.getElementById('profile-name').textContent = this.googleUser.name;
+      document.getElementById('profile-email').textContent = this.googleUser.email;
+      document.getElementById('profile-image').src = this.googleUser.picture;
+      document.getElementById('user-name').value = this.googleUser.name;
+
+    } catch (error) {
+      console.error('Google authentication error:', error);
+      throw error;
     }
   }
 

@@ -1,6 +1,480 @@
 // Background script for Career Manager Chrome Extension
+// Import Notion API class
+// Note: In background script, we'll define it inline since ES6 imports aren't supported
+class NotionAPI {
+  constructor() {
+    this.baseURL = 'https://api.notion.com/v1';
+    this.version = '2022-06-28';
+  }
+
+  async validateToken(token) {
+    try {
+      const response = await fetch(`${this.baseURL}/users/me`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Notion-Version': this.version,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const userInfo = await response.json();
+        return { valid: true, userInfo: userInfo };
+      } else {
+        return { valid: false, userInfo: null };
+      }
+    } catch (error) {
+      console.error('Notion token validation error:', error);
+      return { valid: false, userInfo: null };
+    }
+  }
+
+  async addEventToDatabase(token, databaseId, eventData) {
+    try {
+      // Calculate duration, week number, and other time-based properties
+      const timeData = this.calculateTimeData(eventData);
+      
+      // Skip if timeData is null (invalid dates)
+      if (!timeData) {
+        console.error('Skipping event due to invalid date data:', eventData);
+        return;
+      }
+      
+      const pageData = {
+        parent: {
+          database_id: databaseId
+        },
+        properties: {
+          'Title': {
+            title: [
+              {
+                text: {
+                  content: eventData.title || 'Untitled Event'
+                }
+              }
+            ]
+          },
+          'Type': {
+            select: {
+              name: this.mapEventType(eventData.type)
+            }
+          },
+          'Start Date': {
+            date: {
+              start: timeData.startDateOnly,
+              end: timeData.endDateOnly || null
+            }
+          },
+          'End Date': {
+            date: {
+              start: timeData.endDateOnly || timeData.startDateOnly,
+              end: null
+            }
+          },
+          'Start Time': {
+            rich_text: [
+              {
+                text: {
+                  content: timeData.startTime
+                }
+              }
+            ]
+          },
+          'End Time': {
+            rich_text: [
+              {
+                text: {
+                  content: timeData.endTime
+                }
+              }
+            ]
+          },
+          'Duration (Hours)': {
+            number: timeData.durationHours
+          },
+          'Week Number': {
+            number: timeData.weekNumber
+          },
+          'Year': {
+            number: timeData.year
+          },
+          'Month': {
+            select: {
+              name: timeData.month
+            }
+          },
+          'Location': {
+            rich_text: [
+              {
+                text: {
+                  content: eventData.location || ''
+                }
+              }
+            ]
+          },
+          'Description': {
+            rich_text: [
+              {
+                text: {
+                  content: eventData.description || ''
+                }
+              }
+            ]
+          },
+          'Calendar Source': {
+            rich_text: [
+              {
+                text: {
+                  content: 'Google Calendar'
+                }
+              }
+            ]
+          }
+        }
+      };
+
+      const response = await fetch(`${this.baseURL}/pages`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Notion-Version': this.version,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(pageData)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        
+        // Provide more specific error messages for common issues
+        if (errorData.code === 'object_not_found' && errorData.message.includes('database')) {
+          throw new Error(`노션 데이터베이스에 접근할 수 없습니다. 해결 방법:\n1. 노션에서 데이터베이스가 있는 페이지로 이동\n2. 우상단 'Share' 클릭\n3. Integration '${this.integrationName || 'Carrinder'}'를 초대\n\n오류 세부사항: ${errorData.message}`);
+        }
+        
+        throw new Error(`Failed to add event to Notion: ${errorData.message || response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error adding event to Notion database:', error);
+      throw error;
+    }
+  }
+
+  async getPages(token, parentId = null) {
+    try {
+      let url = `${this.baseURL}/search`;
+      let body = {
+        filter: {
+          value: 'page',
+          property: 'object'
+        }
+      };
+
+      if (parentId) {
+        body.filter.parent = {
+          type: 'page_id',
+          page_id: parentId
+        };
+      }
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Notion-Version': this.version,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(body)
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to get pages: ${response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error getting Notion pages:', error);
+      throw error;
+    }
+  }
+
+  async createDatabase(token, parentPageId, title = 'Career Events') {
+    try {
+      // First, verify access to parent page
+      console.log('Checking parent page access...');
+      await this.verifyPageAccess(token, parentPageId);
+      console.log('Parent page access confirmed');
+      
+      const databaseSchema = {
+        parent: {
+          type: 'page_id',
+          page_id: parentPageId
+        },
+        title: [
+          {
+            type: 'text',
+            text: {
+              content: title
+            }
+          }
+        ],
+        properties: {
+          'Title': {
+            title: {}
+          },
+          'Type': {
+            select: {
+              options: [
+                { name: '강의', color: 'blue' },
+                { name: '심사', color: 'red' },
+                { name: '멘토링', color: 'green' },
+                { name: '특강', color: 'orange' },
+                { name: '기타', color: 'gray' }
+              ]
+            }
+          },
+          'Start Date': {
+            date: {}
+          },
+          'End Date': {
+            date: {}
+          },
+          'Start Time': {
+            rich_text: {}
+          },
+          'End Time': {
+            rich_text: {}
+          },
+          'Duration (Hours)': {
+            number: {
+              format: 'number_with_commas'
+            }
+          },
+          'Week Number': {
+            number: {}
+          },
+          'Year': {
+            number: {}
+          },
+          'Month': {
+            select: {
+              options: [
+                { name: '1월', color: 'default' },
+                { name: '2월', color: 'default' },
+                { name: '3월', color: 'default' },
+                { name: '4월', color: 'default' },
+                { name: '5월', color: 'default' },
+                { name: '6월', color: 'default' },
+                { name: '7월', color: 'default' },
+                { name: '8월', color: 'default' },
+                { name: '9월', color: 'default' },
+                { name: '10월', color: 'default' },
+                { name: '11월', color: 'default' },
+                { name: '12월', color: 'default' }
+              ]
+            }
+          },
+          'Location': {
+            rich_text: {}
+          },
+          'Description': {
+            rich_text: {}
+          },
+          'Calendar Source': {
+            rich_text: {}
+          },
+          'Created At': {
+            created_time: {}
+          },
+          'Last Edited': {
+            last_edited_time: {}
+          }
+        }
+      };
+
+      const response = await fetch(`${this.baseURL}/databases`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Notion-Version': this.version,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(databaseSchema)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        
+        if (errorData.code === 'object_not_found' && errorData.message.includes('page')) {
+          throw new Error(`부모 페이지에 접근할 수 없습니다. 해결 방법:\n1. 노션에서 해당 페이지로 이동\n2. 우상단 'Share' 클릭\n3. Integration '${this.integrationName || 'Carrinder'}'를 초대\n\n오류 세부사항: ${errorData.message}`);
+        }
+        
+        throw new Error(`Notion API error: ${errorData.message || response.statusText}`);
+      }
+
+      const database = await response.json();
+      
+      // Test database access immediately after creation
+      try {
+        await this.testDatabaseAccess(token, database.id);
+      } catch (accessError) {
+        console.warn('Database created but access test failed:', accessError);
+        // Still return the database - user can manually grant permissions
+      }
+      
+      return database;
+    } catch (error) {
+      console.error('Error creating Notion database:', error);
+      throw error;
+    }
+  }
+
+  async syncEventsToDatabase(token, databaseId, events) {
+    const results = {
+      success: [],
+      failed: []
+    };
+
+    for (const event of events) {
+      try {
+        const result = await this.addEventToDatabase(token, databaseId, event);
+        results.success.push({ event, notionPage: result });
+      } catch (error) {
+        results.failed.push({ event, error: error.message });
+      }
+    }
+
+    return results;
+  }
+
+  calculateTimeData(eventData) {
+    const startDate = new Date(eventData.startDate);
+    const endDate = new Date(eventData.endDate || eventData.startDate);
+    
+    // Check if dates are valid
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      console.error('Invalid date values:', eventData.startDate, eventData.endDate);
+      return null;
+    }
+    
+    // Calculate duration in hours
+    const durationMs = endDate.getTime() - startDate.getTime();
+    const durationHours = Math.round((durationMs / (1000 * 60 * 60)) * 100) / 100; // Round to 2 decimal places
+    
+    // Format date and time
+    const startDateOnly = startDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+    const endDateOnly = endDate.toISOString().split('T')[0];
+    
+    const startTime = startDate.toLocaleTimeString('ko-KR', { 
+      hour: '2-digit', 
+      minute: '2-digit', 
+      hour12: false 
+    });
+    const endTime = endDate.toLocaleTimeString('ko-KR', { 
+      hour: '2-digit', 
+      minute: '2-digit', 
+      hour12: false 
+    });
+    
+    // Calculate week number (ISO week date)
+    const weekNumber = this.getWeekNumber(startDate);
+    
+    // Get year and month
+    const year = startDate.getFullYear();
+    const monthNames = ['1월', '2월', '3월', '4월', '5월', '6월', 
+                       '7월', '8월', '9월', '10월', '11월', '12월'];
+    const month = monthNames[startDate.getMonth()];
+    
+    return {
+      startDateOnly,
+      endDateOnly: endDateOnly !== startDateOnly ? endDateOnly : null,
+      startTime,
+      endTime,
+      durationHours,
+      weekNumber,
+      year,
+      month
+    };
+  }
+
+  getWeekNumber(date) {
+    // Get ISO week number
+    const target = new Date(date.valueOf());
+    const dayNumber = (date.getDay() + 6) % 7;
+    target.setDate(target.getDate() - dayNumber + 3);
+    const firstThursday = target.valueOf();
+    target.setMonth(0, 1);
+    if (target.getDay() !== 4) {
+      target.setMonth(0, 1 + ((4 - target.getDay()) + 7) % 7);
+    }
+    return 1 + Math.ceil((firstThursday - target) / 604800000);
+  }
+
+  async verifyPageAccess(token, pageId) {
+    try {
+      const response = await fetch(`${this.baseURL}/pages/${pageId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Notion-Version': this.version
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`부모 페이지 접근 권한이 없습니다. 해결 방법:\n1. 노션에서 해당 페이지로 이동\n2. 우상단 'Share' 클릭\n3. Integration 'Carrinder'를 초대\n\n페이지 ID: ${pageId}\n오류 세부사항: ${errorData.message}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Page access verification error:', error);
+      throw error;
+    }
+  }
+
+  async testDatabaseAccess(token, databaseId) {
+    try {
+      const response = await fetch(`${this.baseURL}/databases/${databaseId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Notion-Version': this.version
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Database access test failed:', errorData);
+        throw new Error(`Database access test failed: ${response.statusText}`);
+      }
+
+      console.log('Database access test passed');
+      return true;
+    } catch (error) {
+      console.error('Database access test error:', error);
+      throw error;
+    }
+  }
+
+  mapEventType(type) {
+    const typeMap = {
+      'instructor': '강의',
+      'lecture': '강의',
+      'judge': '심사',
+      'evaluation': '심사',
+      'mentor': '멘토링',
+      'mentoring': '멘토링'
+    };
+    
+    return typeMap[type?.toLowerCase()] || '기타';
+  }
+}
+
 class CareerManagerBackground {
   constructor() {
+    this.notionAPI = new NotionAPI();
     this.init();
   }
 
@@ -74,6 +548,21 @@ class CareerManagerBackground {
           break;
         case 'update_auto_sync':
           this.updateAutoSync(sendResponse);
+          break;
+        case 'validate_notion_token':
+          this.validateNotionToken(request.token, sendResponse);
+          break;
+        case 'get_notion_pages':
+          this.getNotionPages(request.token, sendResponse);
+          break;
+        case 'create_notion_database':
+          this.createNotionDatabase(request.token, request.parentPageId, request.title, sendResponse);
+          break;
+        case 'sync_to_notion':
+          this.syncToNotion(request.token, request.databaseId, request.events, sendResponse);
+          break;
+        case 'get_notion_stats':
+          this.getNotionStats(request.token, request.databaseId, request.year, sendResponse);
           break;
         default:
           sendResponse({ success: false, error: 'Unknown action' });
@@ -404,13 +893,20 @@ class CareerManagerBackground {
   }
 
   transformEvent(event) {
+    console.log('Transforming event:', event);
+    
     const baseEvent = {
       id: event.id,
       title: event.summary,
+      summary: event.summary, // Keep both for compatibility
       description: event.description || '',
       location: event.location || '',
-      startTime: event.start.dateTime || event.start.date,
+      start_time: event.start.dateTime || event.start.date,
+      end_time: event.end.dateTime || event.end.date,
+      startTime: event.start.dateTime || event.start.date, // Keep both for compatibility
       endTime: event.end.dateTime || event.end.date,
+      startDate: event.start.dateTime || event.start.date, // For Notion API compatibility
+      endDate: event.end.dateTime || event.end.date, // For Notion API compatibility
       date: (event.start.dateTime || event.start.date).split('T')[0],
       type: this.classifyEventType(event.summary, event.description),
       source: 'google-calendar',
@@ -759,10 +1255,11 @@ class CareerManagerBackground {
       const spreadsheet = await createResponse.json();
       const spreadsheetId = spreadsheet.spreadsheetId;
 
-      // Add headers
+      // Add headers with time calculation fields
       const headers = [
-        'Title', 'Date', 'Start Time', 'End Time', 'Type', 
-        'Subcategory', 'Location', 'Description', 'Source', 'Created At'
+        'Title', 'Date', 'Start Time', 'End Time', 'Duration (Hours)', 
+        'Week Number', 'Year', 'Month', 'Type', 'Subcategory', 
+        'Location', 'Description', 'Source', 'Created At'
       ];
 
       await this.updateSpreadsheetData(spreadsheetId, config.sheetName, 'A1', [headers], token);
@@ -1111,12 +1608,16 @@ class CareerManagerBackground {
   }
 
   async addHeadersToSheet(spreadsheetId, role, accessToken, sheetId = null) {
-    // Define column headers based on role
+    // Define column headers with time calculation fields
     const headers = [
       '제목',
       '날짜', 
       '시작시간',
       '종료시간',
+      '소요시간(시간)',
+      '주차',
+      '연도',
+      '월',
       '위치',
       '설명',
       '유형',
@@ -1126,7 +1627,7 @@ class CareerManagerBackground {
     ];
 
     // Determine the sheet name/range
-    let sheetRange = 'A1:J1';
+    let sheetRange = 'A1:N1';
     if (sheetId !== null) {
       // For new tabs, we need to get the sheet name first
       const sheetInfoResponse = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?fields=sheets.properties`, {
@@ -1139,7 +1640,7 @@ class CareerManagerBackground {
         const sheetInfo = await sheetInfoResponse.json();
         const sheet = sheetInfo.sheets.find(s => s.properties.sheetId === sheetId);
         if (sheet) {
-          sheetRange = `${sheet.properties.title}!A1:J1`;
+          sheetRange = `${sheet.properties.title}!A1:N1`;
         }
       }
     }
@@ -1171,11 +1672,16 @@ class CareerManagerBackground {
       }
 
       const { spreadsheetId, events, role, sheetName } = params;
+      
+      console.log('populateSpreadsheet params:', { spreadsheetId, events, role, sheetName });
+      console.log('Events count:', events?.length || 0);
 
       // Convert events to spreadsheet rows
       const rows = events.map(event => this.eventToSpreadsheetRow(event));
+      console.log('Generated rows:', rows.length);
 
       if (rows.length === 0) {
+        console.log('No rows generated, returning early');
         sendResponse({ success: true, rowsAdded: 0 });
         return;
       }
@@ -1192,7 +1698,7 @@ class CareerManagerBackground {
       });
       
       // Add data to specific sheet tab - using append to avoid overwriting
-      const range = `'${targetSheet}'!A2:J`;
+      const range = `'${targetSheet}'!A2:N`;
       const appendUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`;
 
       console.log(`Adding ${rows.length} rows to sheet '${targetSheet}' in spreadsheet ${spreadsheetId}`);
@@ -1230,32 +1736,199 @@ class CareerManagerBackground {
   }
 
   eventToSpreadsheetRow(event) {
-    // Convert event to spreadsheet row
-    const startTime = event.start?.dateTime || event.start?.date || '';
-    const endTime = event.end?.dateTime || event.end?.date || '';
+    // Convert event to spreadsheet row with time calculations
+    console.log('Processing event for spreadsheet:', event);
     
-    const formatDateTime = (dateTimeStr) => {
-      if (!dateTimeStr) return '';
-      try {
-        const date = new Date(dateTimeStr);
-        return date.toLocaleString('ko-KR');
-      } catch {
-        return dateTimeStr;
-      }
-    };
-
-    return [
-      event.summary || '',                           // 제목
-      startTime.split('T')[0] || '',                // 날짜 (YYYY-MM-DD)
-      formatDateTime(startTime),                     // 시작시간
-      formatDateTime(endTime),                       // 종료시간
+    // Handle different event data structures
+    const startTime = event.start_time || event.start?.dateTime || event.start?.date || '';
+    const endTime = event.end_time || event.end?.dateTime || event.end?.date || '';
+    
+    // Calculate time data using the same logic as Notion
+    const timeData = this.calculateEventTimeData(startTime, endTime);
+    
+    const row = [
+      event.title || event.summary || '',            // 제목
+      timeData.dateOnly,                            // 날짜 (YYYY-MM-DD)
+      timeData.startTimeFormatted,                  // 시작시간  
+      timeData.endTimeFormatted,                    // 종료시간
+      timeData.durationHours,                       // 소요시간(시간)
+      timeData.weekNumber,                          // 주차
+      timeData.year,                                // 연도
+      timeData.month,                               // 월
       event.location || '',                          // 위치
       event.description || '',                       // 설명
-      event.type || '',                             // 유형
+      event.type || this.categorizeEvent(event),    // 유형
       event.role || '',                             // 역할
       event.subcategory || '',                      // 세부카테고리
       new Date().toLocaleString('ko-KR')            // 생성일
     ];
+    
+    console.log('Generated spreadsheet row:', row);
+    return row;
+  }
+
+  calculateEventTimeData(startTimeStr, endTimeStr) {
+    console.log('Calculating time data for:', { startTimeStr, endTimeStr });
+    
+    if (!startTimeStr) {
+      return {
+        dateOnly: '',
+        startTimeFormatted: '',
+        endTimeFormatted: '',
+        durationHours: 0,
+        weekNumber: 0,
+        year: new Date().getFullYear(),
+        month: '기타'
+      };
+    }
+    
+    const startDate = new Date(startTimeStr);
+    const endDate = new Date(endTimeStr || startTimeStr);
+    
+    // Check if dates are valid
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      console.error('Invalid date strings:', { startTimeStr, endTimeStr });
+      return {
+        dateOnly: '',
+        startTimeFormatted: '',
+        endTimeFormatted: '',
+        durationHours: 0,
+        weekNumber: 0,
+        year: new Date().getFullYear(),
+        month: '기타'
+      };
+    }
+    
+    // Calculate duration in hours
+    const durationMs = endDate.getTime() - startDate.getTime();
+    const durationHours = Math.round((durationMs / (1000 * 60 * 60)) * 100) / 100; // Round to 2 decimal places
+    
+    // Format date and time
+    const dateOnly = startDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+    
+    const startTimeFormatted = startDate.toLocaleTimeString('ko-KR', { 
+      hour: '2-digit', 
+      minute: '2-digit', 
+      hour12: false 
+    });
+    const endTimeFormatted = endDate.toLocaleTimeString('ko-KR', { 
+      hour: '2-digit', 
+      minute: '2-digit', 
+      hour12: false 
+    });
+    
+    // Calculate week number (ISO week date)
+    const weekNumber = this.getWeekNumber(startDate);
+    
+    // Get year and month
+    const year = startDate.getFullYear();
+    const monthNames = ['1월', '2월', '3월', '4월', '5월', '6월', 
+                       '7월', '8월', '9월', '10월', '11월', '12월'];
+    const month = monthNames[startDate.getMonth()];
+    
+    const result = {
+      dateOnly,
+      startTimeFormatted,
+      endTimeFormatted,
+      durationHours,
+      weekNumber,
+      year,
+      month
+    };
+    
+    console.log('Time calculation result:', result);
+    return result;
+  }
+
+  getWeekNumber(date) {
+    // Get ISO week number (same as Notion API)
+    const target = new Date(date.valueOf());
+    const dayNumber = (date.getDay() + 6) % 7;
+    target.setDate(target.getDate() - dayNumber + 3);
+    const firstThursday = target.valueOf();
+    target.setMonth(0, 1);
+    if (target.getDay() !== 4) {
+      target.setMonth(0, 1 + ((4 - target.getDay()) + 7) % 7);
+    }
+    return 1 + Math.ceil((firstThursday - target) / 604800000);
+  }
+
+  categorizeEvent(event) {
+    const title = (event.title || event.summary || '').toLowerCase();
+    const description = (event.description || '').toLowerCase();
+    const combined = title + ' ' + description;
+    
+    if (combined.includes('강의') || combined.includes('lecture') || combined.includes('수업')) {
+      return '강의';
+    } else if (combined.includes('심사') || combined.includes('평가') || combined.includes('evaluation')) {
+      return '심사';
+    } else if (combined.includes('멘토링') || combined.includes('코칭') || combined.includes('mentoring')) {
+      return '멘토링';
+    } else if (combined.includes('특강') || combined.includes('seminar')) {
+      return '특강';
+    }
+    
+    return '기타';
+  }
+
+  async findSheetByName(spreadsheetId, sheetName, accessToken) {
+    try {
+      const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?fields=sheets.properties`, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to get spreadsheet info: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      const sheets = data.sheets || [];
+      
+      const foundSheet = sheets.find(sheet => sheet.properties.title === sheetName);
+      return foundSheet ? { sheetId: foundSheet.properties.sheetId, title: foundSheet.properties.title } : null;
+      
+    } catch (error) {
+      console.error('Error finding sheet by name:', error);
+      return null;
+    }
+  }
+
+  async clearSheetData(spreadsheetId, sheetName, accessToken) {
+    try {
+      // Get sheet dimensions first
+      const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/'${sheetName}'`, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        const rows = data.values || [];
+        
+        if (rows.length > 1) {
+          // Clear data from row 2 onwards (keep headers in row 1)
+          const clearRange = `'${sheetName}'!A2:N${rows.length}`;
+          
+          const clearResponse = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${clearRange}:clear`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (clearResponse.ok) {
+            console.log(`Cleared existing data from sheet: ${sheetName}`);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error clearing sheet data:', error);
+      // Don't throw error, just log it as clearing data is not critical
+    }
   }
 
   async getStoredData(key) {
@@ -1264,6 +1937,28 @@ class CareerManagerBackground {
         resolve(result[key]);
       });
     });
+  }
+
+  getDefaultSettings() {
+    return {
+      autoSync: true,
+      syncInterval: 30,
+      keywords: {
+        lecture: ['강의', '특강', '수업', 'lecture', 'seminar'],
+        evaluation: ['심사', '평가', 'evaluation', 'review'],
+        mentoring: ['멘토링', '코칭', 'mentoring', 'coaching']
+      },
+      export: {
+        format: 'spreadsheet',
+        includeDescription: true,
+        includeLocation: true
+      },
+      notifications: {
+        enabled: true,
+        upcomingEvents: true,
+        syncComplete: false
+      }
+    };
   }
 
   async storeData(key, data) {
@@ -1529,42 +2224,58 @@ class CareerManagerBackground {
         throw new Error('Google 인증이 필요합니다.');
       }
 
-      // Add new sheet tab using Google Sheets API
-      const batchUpdateUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`;
+      // First, check if the sheet already exists
+      const existingSheet = await this.findSheetByName(spreadsheetId, tabTitle, authData.access_token);
       
-      const addSheetRequest = {
-        requests: [{
-          addSheet: {
-            properties: {
-              title: tabTitle,
-              gridProperties: {
-                rowCount: 1000,
-                columnCount: 20
+      let sheetId;
+      
+      if (existingSheet) {
+        console.log(`Sheet '${tabTitle}' already exists, using existing sheet ID: ${existingSheet.sheetId}`);
+        sheetId = existingSheet.sheetId;
+        
+        // Clear existing data (except headers) before adding new data
+        await this.clearSheetData(spreadsheetId, tabTitle, authData.access_token);
+        
+      } else {
+        console.log(`Creating new sheet: ${tabTitle}`);
+        
+        // Add new sheet tab using Google Sheets API
+        const batchUpdateUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`;
+        
+        const addSheetRequest = {
+          requests: [{
+            addSheet: {
+              properties: {
+                title: tabTitle,
+                gridProperties: {
+                  rowCount: 1000,
+                  columnCount: 20
+                }
               }
             }
-          }
-        }]
-      };
+          }]
+        };
 
-      const response = await fetch(batchUpdateUrl, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${authData.access_token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(addSheetRequest)
-      });
+        const response = await fetch(batchUpdateUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${authData.access_token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(addSheetRequest)
+        });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`탭 추가 실패: ${errorData.error?.message || response.statusText}`);
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(`탭 추가 실패: ${errorData.error?.message || response.statusText}`);
+        }
+
+        const result = await response.json();
+        sheetId = result.replies[0].addSheet.properties.sheetId;
       }
 
-      const result = await response.json();
-      const newSheetId = result.replies[0].addSheet.properties.sheetId;
-
-      // Add headers to the new sheet
-      await this.addHeadersToSheet(spreadsheetId, role, authData.access_token, newSheetId);
+      // Add headers to the sheet
+      await this.addHeadersToSheet(spreadsheetId, role, authData.access_token, sheetId);
 
       // Get spreadsheet info for web view link
       const spreadsheetUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`;
@@ -1572,7 +2283,7 @@ class CareerManagerBackground {
       sendResponse({
         success: true,
         spreadsheetId: spreadsheetId,
-        sheetId: newSheetId,
+        sheetId: sheetId,
         webViewLink: spreadsheetUrl,
         title: tabTitle
       });
@@ -1745,6 +2456,105 @@ class CareerManagerBackground {
     } catch (error) {
       console.error('Logout error:', error);
       sendResponse({ success: false, error: error.message });
+    }
+  }
+
+  // Notion API integration methods
+  async validateNotionToken(token, sendResponse) {
+    try {
+      const notionAPI = new NotionAPI();
+      const result = await notionAPI.validateToken(token);
+      
+      if (result.valid) {
+        sendResponse({ 
+          success: true, 
+          valid: true,
+          userInfo: result.userInfo
+        });
+      } else {
+        sendResponse({ 
+          success: true, 
+          valid: false 
+        });
+      }
+    } catch (error) {
+      console.error('Error validating Notion token:', error);
+      sendResponse({ 
+        success: false, 
+        error: error.message 
+      });
+    }
+  }
+
+  async getNotionPages(token, sendResponse) {
+    try {
+      const notionAPI = new NotionAPI();
+      const pages = await notionAPI.getPages(token);
+      
+      sendResponse({ 
+        success: true, 
+        pages: pages.results || []
+      });
+    } catch (error) {
+      console.error('Error getting Notion pages:', error);
+      sendResponse({ 
+        success: false, 
+        error: error.message 
+      });
+    }
+  }
+
+  async createNotionDatabase(token, parentPageId, title, sendResponse) {
+    try {
+      const notionAPI = new NotionAPI();
+      const database = await notionAPI.createDatabase(token, parentPageId, title);
+      
+      sendResponse({ 
+        success: true, 
+        database: database
+      });
+    } catch (error) {
+      console.error('Error creating Notion database:', error);
+      sendResponse({ 
+        success: false, 
+        error: error.message 
+      });
+    }
+  }
+
+  async syncToNotion(token, databaseId, events, sendResponse) {
+    try {
+      const notionAPI = new NotionAPI();
+      const results = await notionAPI.syncEventsToDatabase(token, databaseId, events);
+      
+      sendResponse({ 
+        success: true, 
+        syncResults: results
+      });
+    } catch (error) {
+      console.error('Error syncing to Notion:', error);
+      sendResponse({ 
+        success: false, 
+        error: error.message 
+      });
+    }
+  }
+
+  async getNotionStats(token, databaseId, year, sendResponse) {
+    try {
+      const notionAPI = new NotionAPI();
+      const stats = await notionAPI.getWeeklyStats(token, databaseId, year);
+      
+      sendResponse({ 
+        success: true, 
+        stats: stats
+      });
+    } catch (error) {
+      console.error('Error getting Notion stats:', error);
+      sendResponse({ 
+        success: false, 
+        error: error.message 
+      });
     }
   }
 }

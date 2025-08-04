@@ -70,6 +70,9 @@ module.exports = {
         { from: 'src/home/home.html', to: 'home.html' },
         { from: 'src/home/home.css', to: 'home.css' },
         { from: 'src/content/content.css', to: 'content.css' },
+        { from: 'src/styles', to: 'src/styles' },
+        { from: 'src/locales', to: 'src/locales' },
+        { from: 'src/utils', to: 'src/utils' },
         { from: 'src/assets', to: 'assets' }
       ]
     }),

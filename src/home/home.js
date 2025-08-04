@@ -4,9 +4,86 @@ class CareerManagerHome {
     this.init();
   }
 
-  init() {
+  async init() {
+    // Initialize language in parallel
+    this.initializeLanguage();
     this.setupEventListeners();
     this.checkUserStatus();
+  }
+
+  async initializeLanguage() {
+    console.log('Initializing language...', { window_i18n: !!window.i18n });
+    
+    // Wait for i18n to be available
+    let attempts = 0;
+    while (!window.i18n && attempts < 50) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+      attempts++;
+    }
+    
+    if (window.i18n) {
+      await window.i18n.loadTranslations();
+      this.setupLanguageToggle();
+    } else {
+      console.error('window.i18n is not available after waiting');
+    }
+  }
+
+  setupLanguageToggle() {
+    const container = document.getElementById('language-toggle-container');
+    console.log('Setting up language toggle...', { 
+      container: !!container, 
+      window_i18n: !!window.i18n,
+      containerId: container?.id 
+    });
+    
+    if (container) {
+      // Clear existing content
+      container.innerHTML = '';
+      
+      if (window.i18n) {
+        const languageToggle = window.i18n.createLanguageToggle();
+        container.appendChild(languageToggle);
+        console.log('Language toggle added to container via i18n');
+        
+        // Update current language display
+        const languageText = languageToggle.querySelector('.language-text');
+        if (languageText) {
+          languageText.textContent = window.i18n.getCurrentLanguage().toUpperCase();
+        }
+        
+        document.addEventListener('languageChanged', () => {
+          window.i18n.updatePageTexts();
+        });
+      } else {
+        // Fallback: create simple language toggle without i18n
+        console.log('Creating fallback language toggle');
+        container.innerHTML = `
+          <div class="language-toggle" style="position: relative; display: inline-block; margin-left: 8px;">
+            <button class="language-btn" style="
+              display: flex;
+              align-items: center;
+              gap: 4px;
+              padding: 6px 10px;
+              background: rgba(255, 255, 255, 0.2);
+              border: 1px solid rgba(255, 255, 255, 0.3);
+              border-radius: 6px;
+              color: white;
+              font-size: 12px;
+              cursor: pointer;
+              min-width: 60px;
+              justify-content: center;
+            ">
+              <span style="font-size: 14px;">🌐</span>
+              <span style="font-weight: 500; font-size: 11px;">KO</span>
+            </button>
+          </div>
+        `;
+        console.log('Fallback language toggle created');
+      }
+    } else {
+      console.error('Cannot setup language toggle - container not found');
+    }
   }
 
   setupEventListeners() {
@@ -58,22 +135,19 @@ class CareerManagerHome {
   }
 
   openPopup() {
-    // Open popup in new tab since we can't open popup window from content script
-    chrome.tabs.create({
-      url: chrome.runtime.getURL('popup.html')
-    });
+    console.log('Opening popup...');
+    // Always navigate in same window for better user experience
+    window.location.href = chrome.runtime.getURL('popup.html');
   }
 
   openSettings() {
-    chrome.tabs.create({
-      url: chrome.runtime.getURL('options.html')
-    });
+    console.log('Opening settings...');
+    window.location.href = chrome.runtime.getURL('options.html');
   }
 
   openPricing() {
-    chrome.tabs.create({
-      url: chrome.runtime.getURL('pricing.html')
-    });
+    console.log('Opening pricing...');
+    window.location.href = chrome.runtime.getURL('pricing.html');
   }
 
   // Utility method to get stored data

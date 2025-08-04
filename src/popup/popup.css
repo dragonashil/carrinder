@@ -1,4 +1,211 @@
 /* Reset and base styles - v2.2 */
+
+/* Beta badges */
+.beta-badge {
+  display: inline-block;
+  background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 12px;
+  margin-left: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow: 0 2px 4px rgba(255, 107, 107, 0.3);
+}
+
+.btn-with-badge {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.btn-with-badge:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-beta-badge {
+  background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+  color: white;
+  font-size: 9px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  box-shadow: 0 1px 3px rgba(255, 107, 107, 0.3);
+  white-space: nowrap;
+}
+
+.btn-large.btn-with-badge {
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-small.btn-with-badge {
+  font-size: 12px;
+}
+
+.btn-small.btn-with-badge .btn-beta-badge {
+  font-size: 8px;
+  padding: 1px 4px;
+}
+
+/* Service Features in Welcome Section */
+.service-features {
+  margin: 24px 0;
+  padding: 20px;
+  background: linear-gradient(135deg, #f8f9ff 0%, #fff5f5 100%);
+  border-radius: 12px;
+  border: 1px solid #e8ecf7;
+}
+
+.features-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.feature-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e8ecf7;
+  transition: all 0.2s ease;
+}
+
+.feature-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.feature-item.premium-feature {
+  border-color: #ffd700;
+  background: linear-gradient(135deg, #fff9e6 0%, #ffffff 100%);
+}
+
+.feature-icon {
+  font-size: 24px;
+  flex-shrink: 0;
+  width: 32px;
+  text-align: center;
+}
+
+.feature-content h4 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.feature-content p {
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.plan-badge {
+  font-size: 10px;
+  background: linear-gradient(135deg, #ffd700, #ffb347);
+  color: #8b4513;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+/* Plan Summary */
+.plan-summary {
+  margin: 20px 0;
+  padding: 16px;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.plan-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.plan-price {
+  font-size: 18px;
+  font-weight: 700;
+  color: #059669;
+  background: #d1fae5;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+.plan-features {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.plan-features li {
+  font-size: 12px;
+  color: #475569;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.plan-features li:last-child {
+  margin-bottom: 0;
+}
+
+/* Responsive adjustments for smaller popup */
+@media (max-width: 900px) {
+  .features-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  
+  .feature-item {
+    padding: 10px;
+  }
+  
+  .feature-content h4 {
+    font-size: 13px;
+  }
+  
+  .feature-content p {
+    font-size: 11px;
+  }
+  
+  .service-features {
+    padding: 16px;
+    margin: 16px 0;
+  }
+}
 * {
   margin: 0;
   padding: 0;
@@ -26,6 +233,12 @@ body {
   overflow: hidden;
 }
 
+/* When opened in new window (not as popup), center it */
+.container.windowed {
+  margin: 0 auto;
+  padding: 20px;
+}
+
 /* Header */
 .header {
   background: #000000;
@@ -45,6 +258,46 @@ body {
 .header-buttons {
   display: flex;
   gap: 8px;
+}
+
+/* Beta styling */
+.section-header-with-badge {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.beta-badge {
+  background: #ff6b35;
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.btn-with-badge {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 16px !important;
+}
+
+.btn-beta-badge {
+  background: #ff6b35;
+  color: white;
+  font-size: 9px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
 }
 
 .btn-icon, .btn-expand {
@@ -1050,6 +1303,10 @@ body {
 .collection-actions {
   margin-top: 32px;
   text-align: center;
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
 }
 
 .btn-large {
@@ -1661,6 +1918,134 @@ body {
   padding: 32px;
   color: #999;
   font-size: 14px;
+}
+
+/* Notion Integration Styles */
+.notion-section {
+  background: linear-gradient(135deg, #f7f3ff 0%, #f0f8ff 100%);
+  border: 1px solid #e8e3ff;
+}
+
+.notion-status {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-label {
+  font-size: 13px;
+  color: #666;
+  font-weight: 500;
+}
+
+.status-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+}
+
+.status-value.connected {
+  color: #28a745;
+}
+
+.status-value.error {
+  color: #dc3545;
+}
+
+.radio-group {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.radio-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #333;
+  cursor: pointer;
+}
+
+.radio-label input[type="radio"] {
+  margin: 0;
+}
+
+.database-selector {
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 6px;
+  border: 1px solid #e0e0e0;
+}
+
+.notion-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.notion-sync-progress {
+  text-align: center;
+  padding: 24px;
+}
+
+.notion-sync-progress h3 {
+  margin-bottom: 16px;
+  color: #333;
+  font-size: 16px;
+}
+
+.notion-sync-results {
+  text-align: center;
+  padding: 24px;
+  background: rgba(40, 167, 69, 0.1);
+  border-radius: 8px;
+  margin-top: 16px;
+}
+
+.notion-sync-results h3 {
+  margin-bottom: 16px;
+  color: #28a745;
+  font-size: 16px;
+}
+
+.notion-database-link {
+  margin-top: 16px;
+}
+
+.notion-database-link a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: #ffffff;
+  border: 1px solid #d0d0d0;
+  border-radius: 6px;
+  text-decoration: none;
+  color: #333;
+  font-size: 13px;
+  transition: all 0.2s ease;
+}
+
+.notion-database-link a:hover {
+  border-color: #4a90e2;
+  background: #f8f9fa;
+}
+
+.btn-small {
+  padding: 6px 12px;
+  font-size: 12px;
+  min-height: auto;
 }
 
 /* Window mode (when opened in new window) */

@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Carrinder",
-  "version": "1.0.3",
-  "description": "Manage your professional career events from Google Calendar",
+  "name": "Carrinder Beta",
+  "version": "1.0.3-beta",
+  "description": "Manage your professional career events from Google Calendar (Beta Version)",
   "permissions": [
     "identity",
     "storage",
@@ -15,7 +15,8 @@
     "https://www.googleapis.com/*",
     "https://api.notion.com/*",
     "https://sheets.googleapis.com/*",
-    "https://docs.google.com/*"
+    "https://docs.google.com/*",
+    "https://oauth2.googleapis.com/*"
   ],
   "icons": {
     "16": "assets/icons/icon-16.png",
@@ -61,7 +62,8 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "assets/*"
+        "assets/*",
+        "src/locales/*"
       ],
       "matches": [
         "<all_urls>"

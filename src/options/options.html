@@ -6,99 +6,143 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Career Manager - Settings</title>
   <link rel="stylesheet" href="options.css">
+  <link rel="stylesheet" href="../styles/language-toggle.css">
 </head>
 
 <body>
   <div class="container">
     <header class="header">
-      <h1 class="title">Career Manager Settings</h1>
-      <p class="subtitle">Configure your career event management preferences</p>
+      <div class="header-content">
+        <div class="header-text">
+          <h1 class="title" data-i18n="settings.page_title">Carrinder - Career Manager Settings</h1>
+          <p class="subtitle" data-i18n="settings.page_subtitle">Configure your career event management preferences</p>
+        </div>
+        <div class="header-controls" id="language-toggle-container">
+          <!-- Language toggle will be inserted here -->
+        </div>
+      </div>
     </header>
 
     <main class="main">
       <div class="settings-section">
-        <h2 class="section-title">Authentication</h2>
+        <h2 class="section-title" data-i18n="settings.auth_section">Authentication</h2>
         <div class="setting-group">
           <div class="setting-item">
             <div class="setting-info">
-              <label class="setting-label">Google Calendar</label>
-              <p class="setting-description">Connect your Google Calendar to sync career events</p>
+              <label class="setting-label" data-i18n="settings.google_calendar">Google Calendar</label>
+              <p class="setting-description" data-i18n="settings.google_calendar_desc">Connect your Google Calendar to sync career events</p>
             </div>
             <div class="setting-control">
-              <span class="auth-status" id="google-status">Not connected</span>
-              <button class="btn btn-primary" id="google-connect-btn">Connect</button>
+              <span class="auth-status" id="google-status" data-i18n="settings.not_connected">Not connected</span>
+              <button class="btn btn-primary" id="google-connect-btn" data-i18n="settings.connect">Connect</button>
             </div>
           </div>
 
           <div class="setting-item">
             <div class="setting-info">
-              <label class="setting-label">Google Drive</label>
-              <p class="setting-description">Connect Google Drive to create and update spreadsheets</p>
+              <label class="setting-label" data-i18n="settings.google_drive">Google Drive</label>
+              <p class="setting-description" data-i18n="settings.google_drive_desc">Connect Google Drive to create and update spreadsheets</p>
             </div>
             <div class="setting-control">
-              <span class="auth-status" id="drive-status">Not connected</span>
-              <button class="btn btn-primary" id="drive-connect-btn">Connect</button>
+              <span class="auth-status" id="drive-status" data-i18n="settings.not_connected">Not connected</span>
+              <button class="btn btn-primary" id="drive-connect-btn" data-i18n="settings.connect">Connect</button>
             </div>
           </div>
 
           <div class="setting-item">
             <div class="setting-info">
-              <label class="setting-label">Notion Integration</label>
-              <p class="setting-description">Enter your Notion integration token to sync with databases</p>
+              <label class="setting-label">
+                <span data-i18n="settings.notion_integration">Notion Integration</span>
+                <span class="beta-badge" data-i18n="common.coming_in_full_version">정식 버전에서 사용 가능</span>
+              </label>
+              <p class="setting-description" data-i18n="settings.notion_integration_desc">Enter your Notion integration token to sync with databases</p>
+              <details class="notion-guide">
+                <summary>🔧 Notion API 토큰 만들기</summary>
+                <div class="guide-content">
+                  <ol class="guide-steps">
+                    <li>
+                      <strong>Notion 설정 페이지</strong> 이동:
+                      <a href="https://www.notion.so/my-integrations" target="_blank" class="guide-link">
+                        https://www.notion.so/my-integrations
+                      </a>
+                    </li>
+                    <li><strong>New integration</strong> 버튼 클릭</li>
+                    <li>
+                      Integration 정보 입력:
+                      <ul>
+                        <li>Name: <code>Carrinder</code></li>
+                        <li>Workspace: 연동할 워크스페이스 선택</li>
+                      </ul>
+                    </li>
+                    <li><strong>Submit</strong> 클릭하여 Integration 생성</li>
+                    <li><strong>Internal Integration Token</strong> 복사 (secret_로 시작)</li>
+                    <li>
+                      Notion 페이지에서 Integration 권한 부여:
+                      <ul>
+                        <li>페이지 우상단 <strong>Share</strong> 클릭</li>
+                        <li><strong>Invite</strong>에서 생성한 Integration 추가</li>
+                      </ul>
+                    </li>
+                  </ol>
+                  <div class="guide-note">
+                    💡 <strong>팁:</strong> Integration을 페이지에 추가해야 데이터베이스 생성 및 접근이 가능합니다.
+                  </div>
+                </div>
+              </details>
             </div>
             <div class="setting-control">
-              <input type="password" class="input" id="notion-token" placeholder="(Plus 요금제에서 사용할 수 있습니다.)" disabled>
-              <button class="btn btn-secondary" id="notion-save-btn" disabled>Save</button>
+              <input type="password" class="input" id="notion-token" data-i18n-placeholder="notion.token_placeholder" placeholder="secret_..." disabled>
+              <button class="btn btn-secondary" id="notion-save-btn" disabled data-i18n="common.save">Save</button>
             </div>
           </div>
         </div>
       </div>
 
       <div class="settings-section">
-        <h2 class="section-title">Event Detection</h2>
+        <h2 class="section-title" data-i18n="settings.event_detection">Event Detection</h2>
         <div class="setting-group">
           <div class="setting-item">
             <div class="setting-info">
-              <label class="setting-label">Lecture Keywords</label>
-              <p class="setting-description">Keywords to identify lecture events</p>
+              <label class="setting-label" data-i18n="settings.lecture_keywords">Lecture Keywords</label>
+              <p class="setting-description" data-i18n="settings.lecture_keywords_desc">Keywords to identify lecture events</p>
             </div>
             <div class="setting-control">
               <textarea class="textarea" id="lecture-keywords" rows="3"
-                placeholder="강의, 특강, 수업, lecture, seminar"></textarea>
+                data-i18n-placeholder="settings.lecture_keywords_placeholder" placeholder="강의, 특강, 수업, lecture, seminar"></textarea>
             </div>
           </div>
 
           <div class="setting-item">
             <div class="setting-info">
-              <label class="setting-label">Evaluation Keywords</label>
-              <p class="setting-description">Keywords to identify evaluation events</p>
+              <label class="setting-label" data-i18n="settings.evaluation_keywords">Evaluation Keywords</label>
+              <p class="setting-description" data-i18n="settings.evaluation_keywords_desc">Keywords to identify evaluation events</p>
             </div>
             <div class="setting-control">
               <textarea class="textarea" id="evaluation-keywords" rows="3"
-                placeholder="심사, 평가, 검토, evaluation, review"></textarea>
+                data-i18n-placeholder="settings.evaluation_keywords_placeholder" placeholder="심사, 평가, 검토, evaluation, review"></textarea>
             </div>
           </div>
 
           <div class="setting-item">
             <div class="setting-info">
-              <label class="setting-label">Mentoring Keywords</label>
-              <p class="setting-description">Keywords to identify mentoring events</p>
+              <label class="setting-label" data-i18n="settings.mentoring_keywords">Mentoring Keywords</label>
+              <p class="setting-description" data-i18n="settings.mentoring_keywords_desc">Keywords to identify mentoring events</p>
             </div>
             <div class="setting-control">
               <textarea class="textarea" id="mentoring-keywords" rows="3"
-                placeholder="멘토링, 코칭, 상담, mentoring, coaching"></textarea>
+                data-i18n-placeholder="settings.mentoring_keywords_placeholder" placeholder="멘토링, 코칭, 상담, mentoring, coaching"></textarea>
             </div>
           </div>
         </div>
       </div>
 
       <div class="settings-section">
-        <h2 class="section-title">Sync Settings</h2>
+        <h2 class="section-title" data-i18n="settings.sync_settings">Sync Settings</h2>
         <div class="setting-group">
           <div class="setting-item">
             <div class="setting-info">
-              <label class="setting-label">Auto Sync <span class="plan-badge">💎 Plus</span></label>
-              <p class="setting-description">Automatically sync events in the background (Plus 요금제에서 사용 가능)</p>
+              <label class="setting-label" data-i18n="settings.auto_sync">Auto Sync <span class="plan-badge">💎 Plus</span></label>
+              <p class="setting-description" data-i18n="settings.auto_sync_desc">Automatically sync events in the background (Plus 요금제에서 사용 가능)</p>
             </div>
             <div class="setting-control">
               <label class="switch">
@@ -110,8 +154,8 @@
 
           <div class="setting-item">
             <div class="setting-info">
-              <label class="setting-label">Sync Interval <span class="plan-badge">💎 Plus</span></label>
-              <p class="setting-description">How often to sync events (minutes) (Plus 요금제에서 사용 가능)</p>
+              <label class="setting-label" data-i18n="settings.sync_interval">Sync Interval <span class="plan-badge">💎 Plus</span></label>
+              <p class="setting-description" data-i18n="settings.sync_interval_desc">How often to sync events (minutes) (Plus 요금제에서 사용 가능)</p>
             </div>
             <div class="setting-control">
               <select class="select" id="sync-interval">
@@ -127,17 +171,17 @@
       </div>
 
       <div class="settings-section">
-        <h2 class="section-title">Export Settings</h2>
+        <h2 class="section-title" data-i18n="settings.export_settings">Export Settings</h2>
         <div class="setting-group">
           <div class="setting-item">
             <div class="setting-info">
-              <label class="setting-label">Default Export Format</label>
-              <p class="setting-description">Preferred format for exporting career events</p>
+              <label class="setting-label" data-i18n="settings.default_export_format">Default Export Format</label>
+              <p class="setting-description" data-i18n="settings.default_export_format_desc">Preferred format for exporting career events</p>
             </div>
             <div class="setting-control">
               <select class="select" id="export-format">
                 <option value="spreadsheet" selected>Google Sheets</option>
-                <option value="notion">Notion Database</option>
+                <option value="notion" disabled>Notion Database (정식 버전에서 사용 가능)</option>
                 <option value="csv">CSV File</option>
                 <option value="json">JSON File</option>
               </select>
@@ -146,8 +190,8 @@
 
           <div class="setting-item">
             <div class="setting-info">
-              <label class="setting-label">Include Description</label>
-              <p class="setting-description">Include event descriptions in exports</p>
+              <label class="setting-label" data-i18n="settings.include_description">Include Description</label>
+              <p class="setting-description" data-i18n="settings.include_description_desc">Include event descriptions in exports</p>
             </div>
             <div class="setting-control">
               <label class="switch">
@@ -159,8 +203,8 @@
 
           <div class="setting-item">
             <div class="setting-info">
-              <label class="setting-label">Include Location</label>
-              <p class="setting-description">Include event locations in exports</p>
+              <label class="setting-label" data-i18n="settings.include_location">Include Location</label>
+              <p class="setting-description" data-i18n="settings.include_location_desc">Include event locations in exports</p>
             </div>
             <div class="setting-control">
               <label class="switch">
@@ -173,12 +217,12 @@
       </div>
 
       <div class="settings-section">
-        <h2 class="section-title">Notifications</h2>
+        <h2 class="section-title" data-i18n="settings.notifications">Notifications</h2>
         <div class="setting-group">
           <div class="setting-item">
             <div class="setting-info">
-              <label class="setting-label">Enable Notifications</label>
-              <p class="setting-description">Show notifications for important events</p>
+              <label class="setting-label" data-i18n="settings.enable_notifications">Enable Notifications</label>
+              <p class="setting-description" data-i18n="settings.enable_notifications_desc">Show notifications for important events</p>
             </div>
             <div class="setting-control">
               <label class="switch">
@@ -190,8 +234,8 @@
 
           <div class="setting-item">
             <div class="setting-info">
-              <label class="setting-label">Upcoming Events</label>
-              <p class="setting-description">Notify about upcoming career events</p>
+              <label class="setting-label" data-i18n="settings.upcoming_events">Upcoming Events</label>
+              <p class="setting-description" data-i18n="settings.upcoming_events_desc">Notify about upcoming career events</p>
             </div>
             <div class="setting-control">
               <label class="switch">
@@ -203,8 +247,8 @@
 
           <div class="setting-item">
             <div class="setting-info">
-              <label class="setting-label">Sync Complete</label>
-              <p class="setting-description">Notify when sync is completed</p>
+              <label class="setting-label" data-i18n="settings.sync_complete">Sync Complete</label>
+              <p class="setting-description" data-i18n="settings.sync_complete_desc">Notify when sync is completed</p>
             </div>
             <div class="setting-control">
               <label class="switch">
@@ -217,56 +261,60 @@
       </div>
 
       <div class="settings-section">
-        <h2 class="section-title">Data Management</h2>
+        <h2 class="section-title" data-i18n="settings.data_management">Data Management</h2>
         <div class="setting-group">
           <div class="setting-item">
             <div class="setting-info">
-              <label class="setting-label">Export Data</label>
-              <p class="setting-description">Export all your career event data</p>
+              <label class="setting-label" data-i18n="settings.export_data">Export Data</label>
+              <p class="setting-description" data-i18n="settings.export_data_desc">Export all your career event data</p>
             </div>
             <div class="setting-control">
-              <button class="btn btn-outline" id="export-data-btn">Export JSON</button>
+              <button class="btn btn-outline" id="export-data-btn" data-i18n="settings.export_json">Export JSON</button>
             </div>
           </div>
 
           <div class="setting-item">
             <div class="setting-info">
-              <label class="setting-label">Import Data</label>
-              <p class="setting-description">Import career event data from backup</p>
+              <label class="setting-label" data-i18n="settings.import_data">Import Data</label>
+              <p class="setting-description" data-i18n="settings.import_data_desc">Import career event data from backup</p>
             </div>
             <div class="setting-control">
               <input type="file" class="file-input" id="import-file" accept=".json">
-              <button class="btn btn-outline" id="import-data-btn">Import JSON</button>
+              <button class="btn btn-outline" id="import-data-btn" data-i18n="settings.import_json">Import JSON</button>
             </div>
           </div>
 
           <div class="setting-item">
             <div class="setting-info">
-              <label class="setting-label">Clear Data</label>
-              <p class="setting-description">Remove all stored career event data</p>
+              <label class="setting-label" data-i18n="settings.clear_data">Clear Data</label>
+              <p class="setting-description" data-i18n="settings.clear_data_desc">Remove all stored career event data</p>
             </div>
             <div class="setting-control">
-              <button class="btn btn-danger" id="clear-data-btn">Clear All Data</button>
+              <button class="btn btn-danger" id="clear-data-btn" data-i18n="settings.clear_all_data">Clear All Data</button>
             </div>
           </div>
 
           <div class="setting-item">
             <div class="setting-info">
-              <label class="setting-label">Logout</label>
-              <p class="setting-description">Sign out and clear all authentication data</p>
+              <label class="setting-label" data-i18n="settings.logout">Logout</label>
+              <p class="setting-description" data-i18n="settings.logout_desc">Sign out and clear all authentication data</p>
             </div>
             <div class="setting-control">
-              <button class="btn btn-danger" id="logout-btn">로그아웃</button>
+              <button class="btn btn-danger" id="logout-btn" data-i18n="settings.logout_button">로그아웃</button>
             </div>
           </div>
         </div>
       </div>
 
       <div class="actions">
-        <button class="btn btn-primary" id="save-settings-btn">Save Settings</button>
-        <button class="btn btn-secondary" id="reset-settings-btn">Reset to Default</button>
-        <button class="btn btn-outline" id="view-pricing-btn">💎 요금제 보기</button>
-        <button class="btn btn-outline" id="home-btn">홈</button>
+        <button class="btn btn-primary" id="save-settings-btn" data-i18n="settings.save_settings">Save Settings</button>
+        <button class="btn btn-secondary" id="reset-settings-btn" data-i18n="settings.reset_to_default">Reset to Default</button>
+        <button class="btn btn-outline btn-with-badge" id="view-pricing-btn" disabled>
+          <span data-i18n="settings.view_pricing">💎 요금제 보기</span>
+          <span class="btn-beta-badge" data-i18n="common.coming_in_full_version">정식 버전에서 사용 가능</span>
+        </button>
+        <button class="btn btn-outline" id="dashboard-btn" data-i18n="settings.main_dashboard">📊 메인 대시보드</button>
+        <button class="btn btn-outline" id="home-btn" data-i18n="common.home">홈</button>
       </div>
     </main>
 
@@ -277,6 +325,8 @@
 
   <div class="toast" id="toast"></div>
 
+  <script src="../utils/i18n.js"></script>
+  <script src="../utils/debug-i18n.js"></script>
   <script src="options.js"></script>
 </body>
 
