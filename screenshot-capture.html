@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carrinder Screenshot Capture</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 32px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #1a1a1a;
+            margin-bottom: 30px;
+        }
+        .instructions {
+            background: #fff3cd;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            border-left: 4px solid #ffc107;
+        }
+        .instructions h3 {
+            margin-top: 0;
+            color: #856404;
+        }
+        .instructions ol {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        .instructions li {
+            margin: 8px 0;
+            color: #856404;
+        }
+        .controls {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 30px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .size-selector {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .size-btn {
+            padding: 8px 16px;
+            border: 2px solid #e5e5e5;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        .size-btn.active {
+            border-color: #000;
+            background: #000;
+            color: white;
+        }
+        .capture-btn {
+            background: #007AFF;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+        .capture-btn:hover {
+            background: #0056CC;
+            transform: translateY(-1px);
+        }
+        .preview-container {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+            margin-top: 30px;
+        }
+        .preview-item {
+            border: 1px solid #e5e5e5;
+            border-radius: 8px;
+            overflow: hidden;
+            background: white;
+        }
+        .preview-header {
+            padding: 15px 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e5e5e5;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .preview-title {
+            font-weight: 600;
+            color: #1a1a1a;
+        }
+        .open-btn {
+            background: #17a2b8;
+            color: white;
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .open-btn:hover {
+            background: #138496;
+        }
+        .page-info {
+            padding: 15px 20px;
+            background: #f8f9fa;
+            border-top: 1px solid #e5e5e5;
+            font-size: 14px;
+            color: #666;
+        }
+        .mock-data-info {
+            background: #d4edda;
+            padding: 10px 15px;
+            border-radius: 6px;
+            margin-top: 10px;
+            font-size: 13px;
+            color: #155724;
+        }
+        .note {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            color: #0d47a1;
+            font-size: 14px;
+        }
+        .url-display {
+            font-family: monospace;
+            background: #f1f3f4;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Carrinder Screenshot Capture</h1>
+        
+        <div class="instructions">
+            <h3>📝 스크린샷 캡처 방법</h3>
+            <ol>
+                <li><strong>새 탭에서 열기:</strong> 아래 "새 탭에서 열기" 버튼을 클릭하여 각 페이지를 새 탭에서 엽니다</li>
+                <li><strong>CSS 로딩 대기:</strong> 페이지가 완전히 로드될 때까지 2-3초 기다립니다</li>
+                <li><strong>개발자 도구 열기:</strong> <code>F12</code> 또는 <code>Ctrl + Shift + I</code></li>
+                <li><strong>Device Toolbar 활성화:</strong> <code>Ctrl + Shift + M</code> 또는 📱 아이콘 클릭</li>
+                <li><strong>크기 설정:</strong> 
+                    <ul style="margin: 5px 0; padding-left: 20px;">
+                        <li>상단 드롭다운에서 "Responsive" 선택</li>
+                        <li>폭/높이 입력란에 <code>640 x 400</code> 또는 <code>1280 x 800</code> 입력</li>
+                    </ul>
+                </li>
+                <li><strong>스크린샷 촬영:</strong>
+                    <ul style="margin: 5px 0; padding-left: 20px;">
+                        <li><strong>추천 방법:</strong> <code>Ctrl + Shift + P</code> → "screenshot" 타이핑 → <strong>"Capture screenshot"</strong> 선택</li>
+                        <li>또는: 페이지에서 우클릭 → "검사" → 요소에서 우클릭 → "Capture node screenshot"</li>
+                        <li>브라우저 확장 프로그램 사용 (Awesome Screenshot, Full Page Screen Capture 등)</li>
+                    </ul>
+                </li>
+            </ol>
+            
+            <div style="background: #fff3cd; padding: 15px; border-radius: 6px; margin-top: 15px; border-left: 4px solid #ffc107;">
+                <h4 style="margin-top: 0; color: #856404;">🔧 대시보드 페이지 로그인 설정</h4>
+                <ol style="color: #856404; margin: 0;">
+                    <li>대시보드 페이지를 새 탭에서 열기</li>
+                    <li><code>F12</code>로 개발자 도구 열고 <strong>"Console"</strong> 탭 클릭</li>
+                    <li>아래 코드를 <strong>마우스로 드래그 → Ctrl+C 복사</strong></li>
+                    <li>콘솔 창 하단 <code>&gt;</code> 표시 옆 입력란에 <strong>우클릭 → "붙여넣기"</strong> (또는 Ctrl+V)</li>
+                    <li><code>Enter</code> 키로 실행:
+                        <div style="background: #f8f9fa; padding: 10px; border-radius: 4px; margin: 8px 0; font-family: monospace; font-size: 12px; overflow-x: auto; border: 2px dashed #007AFF;">
+localStorage.setItem("carrinderUser", JSON.stringify({id:"test",name:"홍길동",email:"hong@example.com",picture:"https://via.placeholder.com/40/4285f4/ffffff?text=H"}));<br>
+localStorage.setItem("userEvents", JSON.stringify([{id:"1",title:"AI 기술 특강",date:"2024-08-15T14:00:00Z",type:"lecture"},{id:"2",title:"프로젝트 평가",date:"2024-08-20T10:00:00Z",type:"evaluation"}]));
+                        </div>
+                    </li>
+                    <li><code>F5</code>로 페이지 새로고침</li>
+                    <li>로그인된 대시보드 확인 후 스크린샷 촬영</li>
+                </ol>
+            </div>
+        </div>
+
+        <div class="controls">
+            <div class="size-selector">
+                <label><strong>권장 크기:</strong></label>
+                <button class="size-btn active" data-size="640x400">640×400</button>
+                <button class="size-btn" data-size="1280x800">1280×800</button>
+            </div>
+            <div style="color: #666; font-size: 14px;">
+                선택된 크기: <span id="selected-size">640×400</span>
+            </div>
+        </div>
+
+        <div class="note">
+            💡 <strong>정확한 크기 캡처 방법:</strong>
+            <ol style="margin: 10px 0; padding-left: 20px;">
+                <li><strong>Device Toolbar 방법:</strong> F12 → Ctrl+Shift+M → 크기 입력 → 우상단 ⋮ 메뉴 → "Capture screenshot"</li>
+                <li><strong>Command Menu 방법 (추천):</strong> Ctrl+Shift+P → "Capture full size screenshot" (전체 페이지 캡처)</li>
+                <li><strong>정확한 뷰포트 크기:</strong> F12 → Console → <code>window.resizeTo(640, 400)</code> 입력 후 일반 스크린샷</li>
+                <li><strong>확장 프로그램:</strong> "GoFullPage", "Full Page Screen Capture" 설치 후 사용</li>
+            </ol>
+        </div>
+        
+        <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ffc107;">
+            <strong>🎯 Device Toolbar 상세 단계:</strong>
+            <ol style="margin: 10px 0; color: #856404;">
+                <li>F12로 개발자 도구 열기</li>
+                <li>Ctrl+Shift+M으로 Device Toolbar 활성화</li>
+                <li>상단 드롭다운에서 "Responsive" 선택</li>
+                <li><strong>폭 입력란 클릭</strong> → 640 입력 → Tab키 → 400 입력</li>
+                <li>페이지가 해당 크기로 조정됨을 확인</li>
+                <li><strong>Device Toolbar 우상단 ⋮ (점 3개) 클릭</strong></li>
+                <li><strong>"Capture screenshot"</strong> 선택 → 자동 다운로드</li>
+            </ol>
+        </div>
+
+        <div class="preview-container" id="previewContainer">
+            <!-- 페이지 목록이 여기에 생성됩니다 -->
+        </div>
+    </div>
+
+    <script>
+        const pages = [
+            {
+                name: '홈페이지',
+                url: './src/home/home.html',
+                filename: 'carrinder-home',
+                description: '서비스 소개 및 주요 기능을 보여주는 랜딩 페이지'
+            },
+            {
+                name: '팝업 (로그인 전)',
+                url: './src/popup/popup.html',
+                filename: 'carrinder-popup-login',
+                description: '확장 프로그램의 초기 화면 (로그인 전 상태)'
+            },
+            {
+                name: '팝업 (대시보드)',
+                url: './src/popup/popup.html',
+                filename: 'carrinder-popup-dashboard',
+                description: '로그인 후 대시보드 화면',
+                mockAuth: true,
+                setupInstructions: [
+                    '1. 아래 "자동 설정" 버튼 클릭',
+                    '2. 새 탭에서 팝업 페이지 열기',
+                    '3. 로그인된 대시보드 확인'
+                ]
+            },
+            {
+                name: '설정 페이지',
+                url: './src/options/options.html',
+                filename: 'carrinder-settings',
+                description: '확장 프로그램 설정 및 연동 관리 페이지'
+            },
+            {
+                name: '회원가입 페이지',
+                url: './src/auth/auth.html',
+                filename: 'carrinder-auth',
+                description: 'Plus 요금제 회원가입 및 결제 페이지'
+            },
+            {
+                name: '요금제 페이지',
+                url: './src/pricing/pricing.html',
+                filename: 'carrinder-pricing',
+                description: '요금제 비교 및 선택 페이지'
+            }
+        ];
+
+        let currentSize = '640x400';
+
+        // Size selector handlers
+        document.querySelectorAll('.size-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentSize = btn.dataset.size;
+                document.getElementById('selected-size').textContent = currentSize;
+            });
+        });
+
+        function createPageList() {
+            const container = document.getElementById('previewContainer');
+            
+            pages.forEach((page, index) => {
+                const previewItem = document.createElement('div');
+                previewItem.className = 'preview-item';
+                
+                const mockDataSection = page.mockAuth ? `
+                    <div class="mock-data-info">
+                        <strong>🔧 로그인 상태 설정 방법:</strong><br>
+                        ${page.setupInstructions ? page.setupInstructions.map(instruction => `
+                            <div style="margin: 5px 0; font-size: 13px;">${instruction}</div>
+                        `).join('') : ''}
+                        <button onclick="setupMockDataAndOpen('${page.url}')" style="background: #28a745; color: white; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; margin-top: 10px; font-size: 12px;">
+                            🚀 자동 설정 & 열기
+                        </button>
+                    </div>
+                ` : '';
+
+                previewItem.innerHTML = `
+                    <div class="preview-header">
+                        <div class="preview-title">${page.name}</div>
+                        <button class="open-btn" onclick="openPageInNewTab('${page.url}')">
+                            🔗 새 탭에서 열기
+                        </button>
+                    </div>
+                    <div class="page-info">
+                        <div><strong>설명:</strong> ${page.description}</div>
+                        <div><strong>파일명:</strong> <span class="url-display">${page.filename}-${currentSize}.png</span></div>
+                        <div><strong>URL:</strong> <span class="url-display">${page.url}</span></div>
+                        ${mockDataSection}
+                    </div>
+                `;
+
+                container.appendChild(previewItem);
+            });
+        }
+
+        function openPageInNewTab(url) {
+            // URL이 상대 경로인 경우 절대 경로로 변환
+            const absoluteUrl = new URL(url, window.location.href).href;
+            window.open(absoluteUrl, '_blank');
+        }
+
+        function updatePageList() {
+            const container = document.getElementById('previewContainer');
+            container.innerHTML = '';
+            createPageList();
+        }
+
+        // 크기 변경 시 파일명 업데이트
+        document.querySelectorAll('.size-btn').forEach(btn => {
+            btn.addEventListener('click', updatePageList);
+        });
+
+        // Initialize on page load
+        window.addEventListener('load', () => {
+            createPageList();
+        });
+
+        // 자동으로 모의 데이터를 설정하고 페이지를 여는 함수
+        window.setupMockDataAndOpen = function(url) {
+            const mockUserData = {
+                id: 'mock_user_123',
+                name: '홍길동',
+                email: 'hong@example.com',
+                picture: 'https://via.placeholder.com/40/4285f4/ffffff?text=H',
+                registeredAt: new Date().toISOString()
+            };
+
+            const mockGoogleAuth = {
+                access_token: 'mock_access_token_' + Date.now(),
+                refresh_token: 'mock_refresh_token',
+                expires_in: 3600,
+                token_type: 'Bearer',
+                scope: 'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/drive.file',
+                created_at: Date.now()
+            };
+
+            const mockDriveAuth = {
+                access_token: 'mock_drive_token_' + Date.now(),
+                refresh_token: 'mock_drive_refresh',
+                expires_in: 3600,
+                token_type: 'Bearer',
+                scope: 'https://www.googleapis.com/auth/drive.file',
+                created_at: Date.now()
+            };
+
+            const mockEvents = [
+                {
+                    id: '1',
+                    title: 'AI 기술 특강',  
+                    description: '인공지능 기술 동향 및 활용 사례',
+                    date: '2024-08-15T14:00:00Z',
+                    type: 'lecture',
+                    location: '서울대학교',
+                    attendees: 50
+                },
+                {
+                    id: '2',
+                    title: '프로젝트 평가',
+                    description: '학생 졸업작품 심사', 
+                    date: '2024-08-20T10:00:00Z',
+                    type: 'evaluation',
+                    location: '온라인',
+                    attendees: 15
+                },
+                {
+                    id: '3',
+                    title: '취업 멘토링',
+                    description: '신입개발자 진로 상담',
+                    date: '2024-08-25T16:00:00Z',
+                    type: 'mentoring',
+                    location: '카페',
+                    attendees: 3
+                },
+                {
+                    id: '4',
+                    title: '스타트업 피칭',
+                    description: '창업 아이디어 발표 및 피드백',
+                    date: '2024-08-30T15:00:00Z',
+                    type: 'lecture',
+                    location: '창업지원센터',
+                    attendees: 25
+                },
+                {
+                    id: '5',
+                    title: '포트폴리오 리뷰',
+                    description: '디자이너 포트폴리오 검토',
+                    date: '2024-09-05T11:00:00Z',
+                    type: 'evaluation',
+                    location: '온라인',
+                    attendees: 8
+                }
+            ];
+
+            // localStorage에 데이터 설정 (Chrome Extension Storage API 키 형식으로)
+            localStorage.setItem('carrinderUser', JSON.stringify(mockUserData));
+            localStorage.setItem('userEvents', JSON.stringify(mockEvents));
+            localStorage.setItem('google_auth', JSON.stringify(mockGoogleAuth));
+            localStorage.setItem('drive_auth', JSON.stringify(mockDriveAuth));
+            
+            // 새 탭에서 페이지 열기
+            const absoluteUrl = new URL(url, window.location.href).href;
+            const newTab = window.open(absoluteUrl, '_blank');
+            
+            alert('✅ 모의 로그인 데이터가 설정되고 새 탭에서 페이지가 열렸습니다!\n로그인된 대시보드를 확인해보세요.');
+        };
+
+        // 별도로 모의 데이터만 설정하는 함수
+        window.setupMockData = function() {
+            const mockUserData = {
+                id: 'mock_user_123',
+                name: '홍길동',
+                email: 'hong@example.com',
+                picture: 'https://via.placeholder.com/40/4285f4/ffffff?text=H',
+                registeredAt: new Date().toISOString()
+            };
+
+            const mockEvents = [
+                {
+                    id: '1',
+                    title: 'AI 기술 특강',
+                    description: '인공지능 기술 동향 및 활용 사례',
+                    date: '2024-08-15T14:00:00Z',
+                    type: 'lecture',
+                    location: '서울대학교',
+                    attendees: 50
+                },
+                {
+                    id: '2',
+                    title: '프로젝트 평가',
+                    description: '학생 졸업작품 심사',
+                    date: '2024-08-20T10:00:00Z',
+                    type: 'evaluation',
+                    location: '온라인',
+                    attendees: 15
+                },
+                {
+                    id: '3',
+                    title: '취업 멘토링',
+                    description: '신입개발자 진로 상담',
+                    date: '2024-08-25T16:00:00Z',
+                    type: 'mentoring',
+                    location: '카페',
+                    attendees: 3
+                }
+            ];
+
+            localStorage.setItem('carrinderUser', JSON.stringify(mockUserData));
+            localStorage.setItem('userEvents', JSON.stringify(mockEvents));
+            console.log('✅ Mock data has been set up! Refresh the page to see the authenticated dashboard.');
+            alert('모의 데이터가 설정되었습니다! 페이지를 새로고침하면 로그인된 대시보드를 볼 수 있습니다.');
+        };
+    </script>
+</body>
+</html>

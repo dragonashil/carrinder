@@ -247,15 +247,11 @@
             sizes.forEach(({ id, size }) => {
                 const canvas = document.getElementById(id);
                 if (canvas) {
-                    // Set actual canvas size for high DPI displays
-                    const dpr = window.devicePixelRatio || 1;
-                    canvas.width = size * dpr;
-                    canvas.height = size * dpr;
+                    // Set canvas size to exact pixel dimensions
+                    canvas.width = size;
+                    canvas.height = size;
                     canvas.style.width = size + 'px';
                     canvas.style.height = size + 'px';
-                    
-                    const ctx = canvas.getContext('2d');
-                    ctx.scale(dpr, dpr);
                     
                     drawIcon(canvas, size);
                 }

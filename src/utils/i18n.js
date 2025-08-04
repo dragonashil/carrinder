@@ -26,8 +26,27 @@ class I18n {
         enUrl = chrome.runtime.getURL('src/locales/en.json');
       } else {
         // For development or non-extension environment
-        koUrl = './src/locales/ko.json';
-        enUrl = './src/locales/en.json';
+        // Detect current path and adjust accordingly
+        const currentPath = window.location.pathname;
+        if (currentPath.includes('/popup/')) {
+          koUrl = '../locales/ko.json';
+          enUrl = '../locales/en.json';
+        } else if (currentPath.includes('/options/')) {
+          koUrl = '../locales/ko.json';
+          enUrl = '../locales/en.json';
+        } else if (currentPath.includes('/home/')) {
+          koUrl = '../locales/ko.json';
+          enUrl = '../locales/en.json';
+        } else if (currentPath.includes('/auth/')) {
+          koUrl = '../locales/ko.json';
+          enUrl = '../locales/en.json';
+        } else if (currentPath.includes('/pricing/')) {
+          koUrl = '../locales/ko.json';
+          enUrl = '../locales/en.json';
+        } else {
+          koUrl = './src/locales/ko.json';
+          enUrl = './src/locales/en.json';
+        }
       }
       
       const koResponse = await fetch(koUrl);
